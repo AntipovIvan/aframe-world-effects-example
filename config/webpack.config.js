@@ -2,6 +2,8 @@ const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 
+const createDev8Plugin = require('./dev8-plugin')
+
 const rootPath = process.cwd()
 const distPath = path.join(rootPath, 'dist')
 const srcPath = path.join(rootPath, 'src')
@@ -128,6 +130,7 @@ const config = {
       'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
     },
     client: {
+      webSocketURL: 'ws://0.0.0.0/ws',
       overlay: {
         warnings: false,
         errors: true,
@@ -136,4 +139,16 @@ const config = {
   },
 }
 
-module.exports = config
+module.exports = (_, argv) => {
+  if (argv.mode === 'development') {
+    return {
+      ...config,
+      plugins: [
+        ...config.plugins,
+        createDev8Plugin({src: 'https://cdn.jsdelivr.net/npm/@8thwall/ecs@3.2.0/dev8/dev8.js'}),
+      ],
+    }
+  }
+
+  return config
+}
