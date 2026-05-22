@@ -1,22 +1,52 @@
-/* Style for "Tap To Place Model" text overlay */
+/* Style for overlay UI */
 .over {
   z-index: 10;
   pointer-events: none;
-  position:absolute;
+  position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
-  
+
   text-align: center;
   color: white;
-  font-family: 'Nunito', monospace;
+  font-family: "Nunito", monospace;
   text-shadow: 0px 0px 5px black;
 }
+
+/* "Tap To Place Model" — shown before placement */
 #promptText {
   font-size: 2em;
   bottom: 12vh;
   position: absolute;
   left: 50%;
   transform: translate(-50%, 0);
+}
+
+/* "Drag to move · Pinch to resize" — shown after placement */
+#hintText {
+  display: none;
+  font-size: 1.1em;
+  opacity: 0.85;
+  bottom: 12vh;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 0);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 6px 16px;
+  border-radius: 20px;
+  white-space: nowrap;
+  /* fade in when display is toggled to block */
+  animation: fadeInUp 0.4s ease both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 0.85;
+    transform: translate(-50%, 0);
+  }
 }

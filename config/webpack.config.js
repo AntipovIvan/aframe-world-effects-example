@@ -1,110 +1,114 @@
-const path = require('path')
-const HtmlWebpackPlugin = require('html-webpack-plugin')
-const CopyWebpackPlugin = require('copy-webpack-plugin')
+const path = require("path");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
-const rootPath = process.cwd()
-const distPath = path.join(rootPath, 'dist')
-const srcPath = path.join(rootPath, 'src')
+const rootPath = process.cwd();
+const distPath = path.join(rootPath, "dist");
+const srcPath = path.join(rootPath, "src");
 
 const ATTRIBUTES_TO_EXPAND = [
-  'src', 'gltf-model', 'cover-image-url', 'footer-image-url', 'watermark-image-url',
-]
+  "src",
+  "gltf-model",
+  "cover-image-url",
+  "footer-image-url",
+  "watermark-image-url",
+];
 
 const makeJsLoader = () => ({
   test: /\.js$/,
   use: {
-    loader: 'babel-loader',
+    loader: "babel-loader",
     options: {
-      presets: ['@babel/preset-env'],
-      plugins: ['@babel/plugin-transform-runtime'],
+      presets: ["@babel/preset-env"],
+      plugins: ["@babel/plugin-transform-runtime"],
     },
   },
   exclude: /node_modules/,
-})
+});
 
 const makeTsLoader = () => ({
   test: /\.ts$/,
-  loader: 'ts-loader',
+  loader: "ts-loader",
   exclude: /node_modules/,
-})
+});
 
 const makeCssLoader = () => ({
   test: /\.css$/,
   exclude: /\/assets\//,
-  use: ['style-loader', 'css-loader'],
-})
+  use: ["style-loader", "css-loader"],
+});
 
 const makeSassLoader = () => ({
   test: /\.scss$/,
-  use: ['style-loader', 'css-loader', 'sass-loader'],
-})
+  use: ["style-loader", "css-loader", "sass-loader"],
+});
 
 const makeAssetLoader = () => ({
   test: /\..*$/,
-  include: [path.join(srcPath, 'assets')],
-  loader: path.join(__dirname, 'asset-loader.js'),
-})
+  include: [path.join(srcPath, "assets")],
+  loader: path.join(__dirname, "asset-loader.js"),
+});
 
 const makeDefaultHtmlLoader = () => ({
   test: /\.html$/,
   use: {
-    loader: 'html-loader',
+    loader: "html-loader",
     options: {
       esModule: false,
       sources: {
         list: [
-          '...',
+          "...",
           {
-            tag: 'script',
-            attribute: 'src',
-            type: 'src',
+            tag: "script",
+            attribute: "src",
+            type: "src",
             filter: () => false,
           },
-          ...ATTRIBUTES_TO_EXPAND.map(attr => ({
-            tag: '*',
+          ...ATTRIBUTES_TO_EXPAND.map((attr) => ({
+            tag: "*",
             attribute: attr,
-            type: 'src',
+            type: "src",
           })),
         ],
       },
     },
   },
-})
+});
 
 const config = {
-  entry: path.join(srcPath, 'app.js'),
+  entry: path.join(srcPath, "app.js"),
   output: {
-    filename: 'bundle.js',
+    filename: "bundle.js",
     path: distPath,
-    publicPath: '/',
+    publicPath: "/",
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.join(srcPath, 'index.html'),
-      filename: 'index.html',
+      template: path.join(srcPath, "index.html"),
+      filename: "index.html",
       inject: false,
     }),
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: path.join(rootPath, 'external'),
-          to: path.join(distPath, 'external'),
+          from: path.join(rootPath, "external"),
+          to: path.join(distPath, "external"),
           noErrorOnMissing: true,
         },
         {
-          from: path.join(srcPath, 'assets'),
-          to: path.join(distPath, 'assets'),
+          from: path.join(srcPath, "assets"),
+          to: path.join(distPath, "assets"),
           noErrorOnMissing: true,
         },
         {
-          from: path.join(rootPath, 'image-targets'),
-          to: path.join(distPath, 'image-targets'),
+          from: path.join(rootPath, "image-targets"),
+          to: path.join(distPath, "image-targets"),
           noErrorOnMissing: true,
         },
       ],
     }),
   ],
-  resolve: {extensions: ['.ts', '.js']},
+  resolve: { extensions: [".ts", ".js"] },
   module: {
     rules: [
       makeJsLoader(),
@@ -115,17 +119,19 @@ const config = {
       makeDefaultHtmlLoader(),
     ],
   },
-  mode: 'production',
+  mode: "production",
   context: srcPath,
   devServer: {
     open: false,
     compress: true,
     hot: true,
     liveReload: false,
+    allowedHosts: [".ngrok-free.dev"],
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "X-Requested-With, content-type, Authorization",
     },
     client: {
       overlay: {
@@ -134,6 +140,6 @@ const config = {
       },
     },
   },
-}
+};
 
-module.exports = config
+module.exports = config;
