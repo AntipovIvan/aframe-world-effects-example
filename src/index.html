@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
 
-    <title>Tap to Place AR</title>
+    <title>AR Experience</title>
 
     <script crossorigin="anonymous" src="./external/scripts/8frame-1.5.0.min.js"></script>
     <script crossorigin="anonymous" src="./external/xrextras/xrextras.js"></script>
@@ -18,7 +18,9 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.min.js"></script>
 
-    <link href="https://fonts.googleapis.com/earlyaccess/notosansjp.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
     <meta name="8thwall:renderer" content="aframe:1.5.0" />
     <meta name="8thwall:package"  content="@8thwall.xrextras" />
@@ -28,6 +30,52 @@
   <body>
     <script src="bundle.js"></script>
 
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         ERROR OVERLAY
+         Shown when the page is opened without a valid experience link.
+         Hidden by default; app.js reveals it if vvdata is missing.
+    ════════════════════════════════════════════════════════════════════════ -->
+    <div id="error-overlay" class="full-screen-overlay" style="display:none;" aria-live="assertive" role="alert">
+      <div class="error-card">
+        <div class="error-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h1 class="error-title">Experience Not Available</h1>
+        <p class="error-body">
+          This AR experience requires a special link to load correctly.<br />
+          Please use the link that was shared with you.
+        </p>
+        <p class="error-detail" id="error-detail-text"></p>
+        <div class="error-divider"></div>
+        <p class="error-hint">
+          <strong>Are you a developer?</strong><br />
+          Links look like:<br />
+          <code>…/index.html?paramsUrl=https://…/params?token=…</code>
+        </p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         LOADING OVERLAY
+         Shown between the first tap and the player4ds-loaded event.
+         Hidden by default; tap-place.js reveals / hides it.
+    ════════════════════════════════════════════════════════════════════════ -->
+    <div id="loading-overlay" class="full-screen-overlay" style="display:none;" aria-live="polite" role="status">
+      <div class="loading-card">
+        <div class="loading-spinner" aria-hidden="true">
+          <div class="spinner-ring"></div>
+          <div class="spinner-ring spinner-ring--delay"></div>
+        </div>
+        <p class="loading-text">Loading experience…</p>
+        <p class="loading-sub">This may take a few seconds</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         A-FRAME SCENE
+    ════════════════════════════════════════════════════════════════════════ -->
     <a-scene
       tap-place
       landing-page
@@ -91,9 +139,24 @@
 
     </a-scene>
 
-    <div class="over">
-      <span id="promptText">Tap To Place</span>
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         HUD OVERLAY — Tap prompt + post-placement hints
+         Managed by tap-place.js state machine.
+    ════════════════════════════════════════════════════════════════════════ -->
+    <div class="over" id="hud-over">
+
+      <!-- Tap-to-place state -->
+      <div id="tap-prompt" class="tap-prompt">
+        <div class="tap-ring-outer" aria-hidden="true">
+          <div class="tap-ring-inner"></div>
+        </div>
+        <span id="promptText">Tap to place</span>
+        <span id="promptSub">Point your camera at the ground, then tap</span>
+      </div>
+
+      <!-- Post-placement hint -->
       <span id="hintText">Drag to move &nbsp;&middot;&nbsp; Pinch to resize</span>
+
     </div>
 
   </body>

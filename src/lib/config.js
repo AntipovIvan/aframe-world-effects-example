@@ -37,7 +37,7 @@ export const config = {
       decay: 2,
       offset: { x: 0, y: 4, z: 0 },
       castShadow: false,
-      shadowMapSize: [512, 512],
+      shadowMapSize: [1024, 1024],
       shadowCameraNear: 1,
       shadowCameraFar: 50,
       shadowCameraFov: 40,
@@ -52,7 +52,7 @@ export const config = {
       height: -0.58, // metres up/down        (neg = lower)
       side: -0.05, // metres left/right     (neg = left)
       rotationY: 3, // degrees Y-axis trim
-      baseScale: 0.6, // multiplied with detectionScale to get final scale
+      baseScale: 1, // multiplied with detectionScale to get final scale
     },
 
     // ── Ground-tap specific ───────────────────────────────────────────────────

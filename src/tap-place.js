@@ -23,7 +23,6 @@ export const tapPlaceComponent = {
       default: config.model4D.offset.rotationY,
     },
     baseScale: { type: "number", default: config.model4D.offset.baseScale },
-    // Replaces the image-target physical size (metres). Tune until model looks right.
     detectionScale: {
       type: "number",
       default: config.model4D.tapDetectionScale ?? 1.0,
@@ -52,8 +51,10 @@ export const tapPlaceComponent = {
     this._hitPoint = new THREE.Vector3();
     this._ndc = new THREE.Vector2();
 
-    this.prompt = document.getElementById("promptText");
+    // ── UI element references ────────────────────────────────────────────────
+    this.tapPrompt = document.getElementById("tap-prompt");
     this.hint = document.getElementById("hintText");
+    this.loadingOverlay = document.getElementById("loading-overlay");
 
     // Bind handlers once
     this._onGroundClick = this._onGroundClick.bind(this);
@@ -61,7 +62,6 @@ export const tapPlaceComponent = {
     this._onTouchMove = this._onTouchMove.bind(this);
     this._onTouchEnd = this._onTouchEnd.bind(this);
 
-    // Ground is created by scene-lighting-component → wait for scene load
     const attachGround = () => {
       const ground = document.getElementById("ground");
       if (ground) {
@@ -77,13 +77,36 @@ export const tapPlaceComponent = {
       this.el.sceneEl.addEventListener("loaded", attachGround, { once: true });
     }
 
-    // passive:false so touchmove can call preventDefault(), preventing
-    // the browser from synthesising a second mouse-click after a drag.
+    // passive:false so touchmove can call preventDefault()
     const opts = { passive: false };
     document.addEventListener("touchstart", this._onTouchStart, opts);
     document.addEventListener("touchmove", this._onTouchMove, opts);
     document.addEventListener("touchend", this._onTouchEnd, opts);
     document.addEventListener("touchcancel", this._onTouchEnd, opts);
+  },
+
+  // ─── UI state helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Transition to LOADING state:
+   *  – hide tap prompt
+   *  – show loading spinner overlay
+   */
+  _enterLoading() {
+    this.state = STATE.LOADING;
+    if (this.tapPrompt) this.tapPrompt.classList.add("hidden");
+    if (this.loadingOverlay) this.loadingOverlay.style.display = "flex";
+  },
+
+  /**
+   * Transition to PLACED state:
+   *  – hide loading spinner
+   *  – show drag/pinch hint
+   */
+  _enterPlaced() {
+    this.state = STATE.PLACED;
+    if (this.loadingOverlay) this.loadingOverlay.style.display = "none";
+    if (this.hint) this.hint.style.display = "block";
   },
 
   // ─── Ground tap → spawn 4DS ───────────────────────────────────────────────
@@ -98,8 +121,7 @@ export const tapPlaceComponent = {
       return;
     }
 
-    this.state = STATE.LOADING;
-    if (this.prompt) this.prompt.style.display = "none";
+    this._enterLoading();
 
     // ── Compute placement transform ───────────────────────────────────────────
 
@@ -152,10 +174,12 @@ export const tapPlaceComponent = {
     if (!player) {
       console.error("[tap-place] #player4ds-panel not found in DOM.");
       this.state = STATE.IDLE;
+      if (this.tapPrompt) this.tapPrompt.classList.remove("hidden");
+      if (this.loadingOverlay) this.loadingOverlay.style.display = "none";
       return;
     }
 
-    // Step 1 — set url + transform (triggers load4ds() → new WEB4DS() → AudioContext created)
+    // Step 1 — set url + transform (triggers load4ds())
     player.setAttribute("player4ds-component", {
       url: urlParams.vvdata,
       isPlaying: false,
@@ -171,13 +195,9 @@ export const tapPlaceComponent = {
     });
 
     // Step 2 — unlock AudioContext while still inside the user-gesture window.
-    // onUserAction calls audioCtx.resume() synchronously in update().
-    // WEB4DS creates its AudioContext in its constructor (called in step 1 above),
-    // so it exists here and can be resumed before the gesture window closes.
     player.setAttribute("player4ds-component", "onUserAction", true);
 
-    // Step 3 — belt-and-suspenders: also resume directly in case the constructor
-    // defers AudioContext creation.
+    // Step 3 — belt-and-suspenders: resume directly in case constructor defers.
     const comp = player.components?.["player4ds-component"];
     if (comp?.web4ds?.audioCtx?.state === "suspended") {
       comp.web4ds.audioCtx.resume().catch(() => {});
@@ -190,7 +210,6 @@ export const tapPlaceComponent = {
       () => {
         console.log("[tap-place] player4ds-loaded — starting playback.");
 
-        // Make the 4DS visible and start animation
         player.setAttribute("player4ds-component", {
           isPlaying: true,
           isVisible: true,
@@ -202,16 +221,13 @@ export const tapPlaceComponent = {
           c.web4ds.audioCtx.resume().catch(() => {});
         }
 
-        // Hider wall — placed AFTER first play call so the depth mask never
-        // occludes the model before any frames have been decoded.
         this._positionHiderWall(
           this._placedTouchPoint,
           this._placedCamPos,
           this._placedScale,
         );
 
-        this.state = STATE.PLACED;
-        if (this.hint) this.hint.style.display = "block";
+        this._enterPlaced();
       },
       { once: true },
     );
@@ -220,14 +236,12 @@ export const tapPlaceComponent = {
   // ─── Hider wall helper ─────────────────────────────────────────────────────
 
   _positionHiderWall(touchPoint, camPos, scale) {
-    // ── Toggle point ── flip config.hidewall.enabled in config.js to show/hide
     if (!config.hidewall?.enabled) return;
 
     const hider = document.getElementById("hidewall-panel");
     if (!hider) return;
 
     hider.setAttribute("visible", "true");
-    // Apply the depth-mask material if not already applied
     if (!hider.getAttribute("my-hider-material")) {
       hider.setAttribute("my-hider-material", "");
     }
@@ -257,7 +271,6 @@ export const tapPlaceComponent = {
   _onTouchMove(event) {
     if (this.state === STATE.IDLE || this.state === STATE.LOADING) return;
 
-    // Block synthetic mouse/click events from firing after a drag
     event.preventDefault();
 
     const touches = event.touches;
@@ -267,11 +280,9 @@ export const tapPlaceComponent = {
     if (this.state === STATE.DRAGGING && touches.length === 1) {
       const pos = this._screenToGround(touches[0].clientX, touches[0].clientY);
       if (pos) {
-        // Move entity container directly (no string parsing overhead)
         player.object3D.position.x = pos.x;
         player.object3D.position.z = pos.z;
 
-        // Keep hider wall in sync
         const hider = document.getElementById("hidewall-panel");
         if (hider && hider.getAttribute("visible") !== "false") {
           const cam = this.el.sceneEl.camera.el;
@@ -293,7 +304,6 @@ export const tapPlaceComponent = {
       );
       this.currentScale = clamped;
 
-      // Via component so internal applyScale() keeps mesh in sync
       player.setAttribute("player4ds-component", "scale", clamped);
 
       const hider = document.getElementById("hidewall-panel");
@@ -310,7 +320,6 @@ export const tapPlaceComponent = {
       this.state = STATE.PLACED;
       this.dragTouchId = null;
     } else if (count === 1 && this.state === STATE.PINCHING) {
-      // Don't auto-enter DRAGGING — avoids position jump when releasing a pinch
       this.state = STATE.PLACED;
     }
   },

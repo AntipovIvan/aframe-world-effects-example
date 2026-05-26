@@ -1,11 +1,3 @@
-/**
- * scene-lighting.js
- *
- * Creates ambient + directional lights from config.
- * Ground plane is declared in index.html so this component does NOT create it,
- * keeping tap-place's ground event listener simple.
- */
-
 import { config } from "./config.js";
 
 export const sceneLightingComponent = {

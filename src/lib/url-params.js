@@ -1,14 +1,5 @@
-/**
- * url-params.js — URL / remote-JSON parameter resolver.
- *
- * Reads a JSON blob from ?paramsUrl=… (or direct query params as fallback).
- * Expected JSON shape:
- *   { "params": { "vvData": "…", "guidanceImage": "…", "gaid": "…", "cr-gaid": "…" } }
- */
-
 import { config } from "./config.js";
 
-/** Shared object populated by initUrlParams(). Import this anywhere. */
 export const urlParams = {};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -1,8 +1,188 @@
+/* ── Base ──────────────────────────────────────────────────────────────────── */
 body {
-  font-family: "Noto Sans JP", sans-serif;
+  font-family: "Outfit", "Noto Sans JP", sans-serif;
   font-size: 10px;
+  margin: 0;
+  padding: 0;
 }
 
+/* ── Shared full-screen overlay base ──────────────────────────────────────── */
+/*
+ * Both #error-overlay and #loading-overlay sit above the A-Frame canvas
+ * (z-index 999999) but below xrextras permission overlays (~1000000).
+ */
+.full-screen-overlay {
+  z-index: 10000001;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  /* Frosted-glass backdrop */
+  background: rgba(8, 8, 16, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: overlayFadeIn 0.35s ease both;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Error overlay card ────────────────────────────────────────────────────── */
+.error-card {
+  max-width: 380px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 36px 28px 32px;
+  text-align: center;
+  color: #f0f0f0;
+  animation: cardSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.1s;
+}
+
+@keyframes cardSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.error-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 20px;
+  color: #f9a825;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.error-title {
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  font-size: 2em;
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.error-body {
+  font-size: 1.4em;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 0 0 8px;
+}
+
+.error-detail {
+  font-size: 1.2em;
+  color: #f08080;
+  margin: 0 0 20px;
+  min-height: 1em;
+}
+
+.error-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 20px 0;
+}
+
+.error-hint {
+  font-size: 1.15em;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+  text-align: left;
+}
+
+.error-hint strong {
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 500;
+}
+
+.error-hint code {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.95em;
+  word-break: break-all;
+  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Loading overlay card ──────────────────────────────────────────────────── */
+.loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: cardSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.05s;
+}
+
+.loading-spinner {
+  position: relative;
+  width: 52px;
+  height: 52px;
+}
+
+.spinner-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.9);
+  animation: spinRing 1s linear infinite;
+}
+
+.spinner-ring--delay {
+  inset: 7px;
+  border-top-color: rgba(255, 255, 255, 0.4);
+  animation-delay: -0.4s;
+}
+
+@keyframes spinRing {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-family: "Outfit", sans-serif;
+  font-size: 1.7em;
+  font-weight: 500;
+  color: #fff;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.loading-sub {
+  font-size: 1.2em;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+}
+
+/* ── HUD overlay (sits above a-canvas, below xrextras) ───────────────────── */
 /*
  * 8th Wall sets .a-canvas to z-index 999999.
  * UI must sit above that but below xrextras permission overlays (~820).
@@ -11,34 +191,106 @@ body {
   z-index: 10000000;
   pointer-events: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
   padding-bottom: 12vh;
   text-align: center;
   color: white;
-  font-family: "Nunito", "Noto Sans JP", monospace;
-  text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+  font-family: "Outfit", "Noto Sans JP", monospace;
 }
 
-/* "Tap To Place" — visible before first tap */
+/* ── Tap prompt ──────────────────────────────────────────────────────────── */
+.tap-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  animation: fadeIn 0.5s ease both;
+}
+
+.tap-prompt.hidden {
+  display: none;
+}
+
+/* Animated concentric rings acting as a tap indicator */
+.tap-ring-outer {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulseRingOuter 2s ease-in-out infinite;
+  margin-bottom: 4px;
+}
+
+.tap-ring-inner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  animation: pulseRingInner 2s ease-in-out infinite;
+}
+
+@keyframes pulseRingOuter {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseRingInner {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(0.9);
+    opacity: 1;
+  }
+}
+
 #promptText {
   font-size: 2em;
+  font-weight: 600;
   display: block;
+  text-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
+  letter-spacing: 0.01em;
 }
 
-/* "Drag to move · Pinch to resize" — shown after model loads */
+#promptSub {
+  font-size: 1.2em;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  display: block;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+  margin-top: -4px;
+}
+
+/* ── Post-placement hint pill ────────────────────────────────────────────── */
 #hintText {
   display: none;
   font-size: 1.1em;
-  background: rgba(0, 0, 0, 0.38);
-  padding: 6px 18px;
-  border-radius: 20px;
+  font-weight: 400;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 8px 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   white-space: nowrap;
+  text-shadow: none;
   animation: fadeInUp 0.4s ease both;
 }
 
@@ -50,5 +302,14 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
