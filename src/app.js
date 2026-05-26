@@ -1,10 +1,34 @@
-// Copyright (c) 2022 8th Wall, Inc.
-//
-// app.js is the main entry point for your 8th Wall app. Code here will execute after head.html
-// is loaded, and before body.html is loaded.
+/**
+ * app.js — Application entry point.
+ *
+ * Boots in this order:
+ *  1. Resolve all URL / remote-JSON params (awaited).
+ *  2. Boot Google Analytics.
+ *  3. Register A-Frame components.
+ *
+ * No image-target pipeline — ground-tap placement handles positioning.
+ */
 
-import './index.css'
+import { initUrlParams, initGoogleAnalytics } from "./lib/url-params.js";
+import "./index.css";
 
-// Register custom A-Frame components in app.js before the scene in body.html has loaded.
-import {tapPlaceComponent} from './tap-place'
-AFRAME.registerComponent('tap-place', tapPlaceComponent)
+import { tapPlaceComponent } from "./tap-place.js";
+import { player4dsComponent } from "./lib/player4ds.js";
+import { sceneLightingComponent } from "./lib/scene-lighting.js";
+import { myHiderMaterialComponent } from "./lib/hider-material.js";
+
+(async () => {
+  // 1. Resolve all parameters before any A-Frame schema is captured.
+  await initUrlParams();
+
+  // 2. Google Analytics (gaid / crGaid are now populated).
+  initGoogleAnalytics();
+
+  // 3. Register components.
+  //    Schemas that read from config.js are correct because initUrlParams()
+  //    has already applied offset overrides.
+  AFRAME.registerComponent("tap-place", tapPlaceComponent);
+  AFRAME.registerComponent("player4ds-component", player4dsComponent());
+  AFRAME.registerComponent("scene-lighting-component", sceneLightingComponent);
+  AFRAME.registerComponent("my-hider-material", myHiderMaterialComponent);
+})();
