@@ -73,13 +73,17 @@ export async function initUrlParams() {
   Object.assign(urlParams, {
     // Core content
     vvdata: resolveString(["vvData", "vvdata"], json, search),
-    // Meta
+
+    endImage: resolveString(["endImage", "image"], json, search),
+    ctaUrl: resolveString(["ctaUrl", "url"], json, search),
+
     _usedParamsUrl: !!paramsUrl,
     _paramsUrl: paramsUrl ?? null,
   });
-
   console.log("[url-params] Resolved:", {
     vvdata: urlParams.vvdata,
+    endImage: urlParams.endImage,
+    ctaUrl: urlParams.ctaUrl,
   });
 
   return urlParams;

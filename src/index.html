@@ -29,7 +29,6 @@
 
   <body>
     <script src="bundle.js"></script>
-
     <div id="error-overlay" class="full-screen-overlay" style="display:none;" aria-live="assertive" role="alert">
       <div class="error-card">
         <div class="error-icon">
@@ -51,7 +50,6 @@
         </p>
       </div>
     </div>
-
     <div id="loading-overlay" class="full-screen-overlay" style="display:none;" aria-live="polite" role="status">
       <div class="loading-card">
         <div class="loading-spinner" aria-hidden="true">
@@ -60,6 +58,21 @@
         </div>
         <p class="loading-text">Loading experience…</p>
         <p class="loading-sub">This may take a few seconds</p>
+      </div>
+    </div>
+
+    <div id="end-overlay" class="full-screen-overlay" style="display:none;" aria-live="assertive" role="dialog" aria-label="End screen">
+      <div class="end-card">
+        <a id="end-cta-link" target="_blank" rel="noopener noreferrer">
+          <img id="end-cta-image" alt="" />
+        </a>
+        <p id="end-cta-hint" class="end-cta-hint" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          タップして開く
+        </p>
       </div>
     </div>
 
@@ -90,7 +103,6 @@
 
       <a-entity scene-lighting-component></a-entity>
 
-    
       <a-box
         id="ground"
         class="cantap"
@@ -106,7 +118,6 @@
         visible="false">
       </a-entity>
 
-   
       <a-entity
         id="player4ds-panel"
         player4ds-component="

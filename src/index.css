@@ -303,3 +303,72 @@ body {
     opacity: 1;
   }
 }
+
+.end-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 88vw;
+  animation: cardSlideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.08s;
+}
+
+#end-cta-link {
+  display: block;
+  border-radius: 18px;
+  overflow: hidden;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  /* Subtle white glow / border */
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 12px 48px rgba(0, 0, 0, 0.6);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* Press feedback on mobile */
+#end-cta-link:not(.no-url):active {
+  transform: scale(0.97);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 6px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Disabled state: no URL was provided */
+#end-cta-link.no-url {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* The image itself */
+#end-cta-image {
+  display: block;
+  max-width: 88vw;
+  max-height: 72vh;
+  width: auto;
+  height: auto;
+  /* border-radius is clipped by the parent overflow:hidden */
+}
+
+/* "Tap to open" caption shown below the image when ctaUrl is set */
+.end-cta-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Outfit", "Noto Sans JP", sans-serif;
+  font-size: 1.25em;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+  letter-spacing: 0.01em;
+  animation: fadeIn 0.4s ease both;
+  animation-delay: 0.35s;
+}
+
+.end-cta-hint svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}

@@ -55,6 +55,7 @@ export const tapPlaceComponent = {
     this.tapPrompt = document.getElementById("tap-prompt");
     this.hint = document.getElementById("hintText");
     this.loadingOverlay = document.getElementById("loading-overlay");
+    this.endOverlay = document.getElementById("end-overlay");
 
     // Bind handlers once
     this._onGroundClick = this._onGroundClick.bind(this);
@@ -97,6 +98,42 @@ export const tapPlaceComponent = {
     this.state = STATE.PLACED;
     if (this.loadingOverlay) this.loadingOverlay.style.display = "none";
     if (this.hint) this.hint.style.display = "block";
+  },
+
+  // ─── End-screen overlay ──────────────────────────────────────────────────────
+
+  _showEndOverlay() {
+    // Hide the drag/pinch hint — it's no longer relevant.
+    if (this.hint) this.hint.style.display = "none";
+
+    const overlay = this.endOverlay;
+    if (!overlay) return;
+
+    const img = document.getElementById("end-cta-image");
+    const link = document.getElementById("end-cta-link");
+    const hintEl = document.getElementById("end-cta-hint");
+
+    // Populate image
+    if (img && urlParams.endImage) {
+      img.src = urlParams.endImage;
+      img.alt = urlParams.ctaUrl ? "もっと見る" : "";
+    }
+
+    // Wire up (or disable) the link
+    if (link) {
+      if (urlParams.ctaUrl) {
+        link.href = urlParams.ctaUrl;
+        link.classList.remove("no-url");
+      } else {
+        link.removeAttribute("href");
+        link.classList.add("no-url");
+        // Hide the "tap to open" hint when there's no destination URL
+        if (hintEl) hintEl.style.display = "none";
+      }
+    }
+
+    overlay.style.display = "flex";
+    console.log("[tap-place] end overlay shown.");
   },
 
   // ─── Ground tap → spawn 4DS ───────────────────────────────────────────────
@@ -169,11 +206,14 @@ export const tapPlaceComponent = {
       return;
     }
 
-    // Step 1 — set url + transform (triggers load4ds())
+    const hasEndContent = !!(urlParams.endImage || urlParams.ctaUrl);
+
+    // Step 1 — set url + transform + loop mode (triggers load4ds())
     player.setAttribute("player4ds-component", {
       url: urlParams.vvdata,
       isPlaying: false,
       isVisible: false,
+      isLoop: !hasEndContent,
       scale: scale,
       position: { x: modelPos.x, y: modelPos.y, z: modelPos.z },
       quaternion: {
@@ -216,6 +256,20 @@ export const tapPlaceComponent = {
           this._placedCamPos,
           this._placedScale,
         );
+        if (hasEndContent) {
+          player.addEventListener(
+            "player4ds-ended",
+            () => this._showEndOverlay(),
+            { once: true },
+          );
+          console.log(
+            "[tap-place] end-screen armed (endImage:",
+            urlParams.endImage,
+            "ctaUrl:",
+            urlParams.ctaUrl,
+            ")",
+          );
+        }
 
         this._enterPlaced();
       },
