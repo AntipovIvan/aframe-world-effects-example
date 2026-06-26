@@ -10,6 +10,10 @@ A mobile WebAR experience built with **8th Wall**, **A-Frame**, and a **4DS (vol
 User opens link → Camera activates → Tap the ground → 4DS model loads and plays
                                                           ↓
                                               Drag to move · Pinch to resize
+                                                          ↓ (if endImage / ctaUrl set)
+                                              Sequence ends → End-screen image pops up
+                                                          ↓ (if ctaUrl set)
+                                              Tap image → Opens URL in new tab
 ```
 
 The experience **requires a special link** containing a signed token that points to the 4DS content. Opening the bare URL without parameters shows a friendly error screen.
@@ -69,16 +73,17 @@ The endpoint must return JSON in one of these shapes:
 // Shape 1 — nested under "params" key
 {
   "params": {
-    "vvData": "https://cdn.example.com/sequence.4ds",
-    "gaid":   "G-XXXXXXXXXX",
-    "cr-gaid": "G-YYYYYYYYYY"
+    "vvData":   "https://cdn.example.com/sequence.4ds",
+    "endImage": "https://cdn.example.com/banner.jpg",
+    "ctaUrl":   "https://example.com/product"
   }
 }
 
 // Shape 2 — flat object
 {
-  "vvData": "https://cdn.example.com/sequence.4ds",
-  "gaid":   "G-XXXXXXXXXX"
+  "vvData":   "https://cdn.example.com/sequence.4ds",
+  "endImage": "https://cdn.example.com/banner.jpg",
+  "ctaUrl":   "https://example.com/product"
 }
 ```
 
@@ -88,17 +93,21 @@ The endpoint must return JSON in one of these shapes:
 https://yourdomain.com/index.html?vvData=https://cdn.example.com/sequence.4ds
 ```
 
-### All Supported Parameters
+With end-screen:
 
-| Parameter | Aliases | Description |
-|-----------|---------|-------------|
-| `vvData` | `vvdata` | **Required.** URL of the `.4ds` volumetric sequence |
-| `guidanceImage` | `guidanceimage` | URL of an optional guidance image |
-| `gaid` | `a` | Google Analytics measurement ID |
-| `cr-gaid` | `c` | Secondary / Campaign Reporter GA ID |
-| `offset_x` | `x` | Override `config.model4D.offset.side` (metres) |
-| `offset_y` | `y` | Override `config.model4D.offset.height` (metres) |
-| `offset_z` | `z` | Override `config.model4D.offset.front` (metres) |
+```
+https://yourdomain.com/index.html?vvData=https://cdn.example.com/sequence.4ds&image=https://cdn.example.com/banner.jpg&url=https://example.com/product
+```
+
+### Supported Parameters
+
+| Parameter | Aliases | Required | Description |
+|-----------|---------|----------|-------------|
+| `vvData` | `vvdata` | ✅ | URL of the `.4ds` volumetric sequence |
+| `endImage` | `image` | — | URL of an image shown after the sequence ends. When set, the 4DS plays once (no loop) |
+| `ctaUrl` | `url` | — | URL opened in a new tab when the user taps the end-screen image. Requires `endImage` to be set |
+
+> **End-screen behaviour:** if either `endImage` or `ctaUrl` is detected, the 4DS plays **once** from start to finish (no looping). When the sequence ends, a full-screen overlay appears showing the image. If `ctaUrl` is also set, tapping the image opens that URL in a new tab and a "タップして開く" hint is shown below the image. Without `ctaUrl` the image is display-only.
 
 ---
 
@@ -109,13 +118,13 @@ All visual and placement defaults live here. Edit this file to tune the experien
 ```js
 // src/lib/config.js (key sections)
 
-config.hidewall.enabled         // true = show depth-mask wall behind model
+config.hidewall.enabled          // true = show depth-mask wall behind model
 
-config.model4D.offset.front     // metres toward camera at placement
-config.model4D.offset.height    // metres up/down at placement
-config.model4D.offset.side      // metres left/right at placement
-config.model4D.offset.rotationY // Y-axis trim in degrees
-config.model4D.offset.baseScale // multiplied with tapDetectionScale
+config.model4D.offset.front      // metres toward camera at placement
+config.model4D.offset.height     // metres up/down at placement
+config.model4D.offset.side       // metres left/right at placement
+config.model4D.offset.rotationY  // Y-axis trim in degrees
+config.model4D.offset.baseScale  // multiplied with tapDetectionScale
 
 config.model4D.tapDetectionScale // overall size of the model (increase = bigger)
 config.model4D.tapScaleMin       // minimum scale when pinching
@@ -132,9 +141,10 @@ config.model4D.spotlight.enabled            // toggle shadow spotlight
 | State | What the user sees |
 |-------|--------------------|
 | **No valid link** | Error overlay: "Experience Not Available" + developer hint |
-| **Waiting to tap** | AR camera view + animated tap indicator + "Tap to place / Point camera at ground" |
+| **Waiting to tap** | AR camera view + animated tap indicator + "タップして配置 / カメラを地面に向けて、タップしてください" |
 | **Loading** | Frosted-glass spinner overlay: "Loading experience…" |
-| **Placed & playing** | Full AR view + "Drag to move · Pinch to resize" pill |
+| **Placed & playing** | Full AR view + "ドラッグして移動 · ピンチしてサイズ変更" pill |
+| **End screen** | Full-screen image overlay (play-once mode only). Tappable if `ctaUrl` is set |
 
 ---
 
@@ -143,9 +153,9 @@ config.model4D.spotlight.enabled            // toggle shadow spotlight
 ```
 src/
 ├── app.js                   # Entry point — param resolution, error guard, component registration
-├── index.html               # A-Frame scene + UI overlays
+├── index.html               # A-Frame scene + UI overlays (error, loading, end-screen, HUD)
 ├── index.css                # All UI styles (overlays, HUD, animations)
-├── tap-place.js             # Ground-tap placement + drag/pinch gesture state machine
+├── tap-place.js             # Ground-tap placement + drag/pinch gestures + end-screen trigger
 └── lib/
     ├── config.js            # All tunable defaults
     ├── player4ds.js         # A-Frame component wrapping WEB4DS
@@ -154,7 +164,7 @@ src/
     ├── web4dvResource.js    # Web Worker codec loader (uses PUBLIC_PATH)
     ├── scene-lighting.js    # Ambient + directional light setup from config
     ├── hider-material.js    # Depth-mask material component
-    ├── url-params.js        # URL / remote-JSON param resolver + Google Analytics
+    ├── url-params.js        # URL / remote-JSON param resolver
     └── deviceUtils.js       # Device/WebGL detection helpers
 
 config/
@@ -166,32 +176,6 @@ external/                    # 8th Wall SDK files (not committed — copy from y
 ├── landing-page/landing-page.js
 └── xr/xr.js
 ```
-
----
-
-## Common Issues
-
-### Model appears but is the wrong size
-Adjust `config.model4D.tapDetectionScale` in `config.js`.  
-Alternatively, pass `?offset_y=…` in the URL to shift height.
-
-### "Experience Not Available" on a valid link
-- Open DevTools → Network tab → check if the `paramsUrl` fetch succeeded.
-- The most common cause is a **CORS header** missing on the params endpoint.  
-  The endpoint must respond with `Access-Control-Allow-Origin: *` (or your domain).
-- Check the `error-detail-text` element in the DOM for the exact error message.
-
-### Audio doesn't play on iOS
-iOS requires a user gesture to resume an `AudioContext`.  
-The tap that places the model counts as a gesture — the component calls `audioCtx.resume()` synchronously inside `_onGroundClick`. If audio is still silent, check that the device is **not in silent mode**.
-
-### CODEC files 404 in production
-The web worker fetches `PUBLIC_PATH + "web4dv/CODEC.*"`.  
-`PUBLIC_PATH` is injected at build time via `webpack.DefinePlugin` as `"/"`.  
-Make sure `dist/web4dv/` is deployed alongside `dist/bundle.js`.
-
-### Black screen / scene never loads
-Verify your 8th Wall app key is configured and the `external/xr/xr.js` SDK file is present.
 
 ---
 
