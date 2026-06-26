@@ -87,22 +87,12 @@ export const tapPlaceComponent = {
 
   // ─── UI state helpers ────────────────────────────────────────────────────────
 
-  /**
-   * Transition to LOADING state:
-   *  – hide tap prompt
-   *  – show loading spinner overlay
-   */
   _enterLoading() {
     this.state = STATE.LOADING;
     if (this.tapPrompt) this.tapPrompt.classList.add("hidden");
     if (this.loadingOverlay) this.loadingOverlay.style.display = "flex";
   },
 
-  /**
-   * Transition to PLACED state:
-   *  – hide loading spinner
-   *  – show drag/pinch hint
-   */
   _enterPlaced() {
     this.state = STATE.PLACED;
     if (this.loadingOverlay) this.loadingOverlay.style.display = "none";

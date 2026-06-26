@@ -30,11 +30,6 @@
   <body>
     <script src="bundle.js"></script>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         ERROR OVERLAY
-         Shown when the page is opened without a valid experience link.
-         Hidden by default; app.js reveals it if vvdata is missing.
-    ════════════════════════════════════════════════════════════════════════ -->
     <div id="error-overlay" class="full-screen-overlay" style="display:none;" aria-live="assertive" role="alert">
       <div class="error-card">
         <div class="error-icon">
@@ -57,11 +52,6 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         LOADING OVERLAY
-         Shown between the first tap and the player4ds-loaded event.
-         Hidden by default; tap-place.js reveals / hides it.
-    ════════════════════════════════════════════════════════════════════════ -->
     <div id="loading-overlay" class="full-screen-overlay" style="display:none;" aria-live="polite" role="status">
       <div class="loading-card">
         <div class="loading-spinner" aria-hidden="true">
@@ -73,9 +63,6 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         A-FRAME SCENE
-    ════════════════════════════════════════════════════════════════════════ -->
     <a-scene
       tap-place
       landing-page
@@ -103,10 +90,7 @@
 
       <a-entity scene-lighting-component></a-entity>
 
-      <!--
-        Shadow / tap-detection ground.
-        Position y=-1 so the top face sits at y=0 (world-tracking ground level).
-      -->
+    
       <a-box
         id="ground"
         class="cantap"
@@ -116,17 +100,13 @@
         shadow="cast: false">
       </a-box>
 
-      <!-- Hider wall: pre-loaded, invisible until player4ds-loaded fires -->
       <a-entity
         id="hidewall-panel"
         gltf-model="#hider-wall-panel"
         visible="false">
       </a-entity>
 
-      <!--
-        4DS player: url starts empty so the component initialises without
-        fetching. tap-place sets url on first tap → triggers load4ds().
-      -->
+   
       <a-entity
         id="player4ds-panel"
         player4ds-component="
@@ -139,10 +119,6 @@
 
     </a-scene>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         HUD OVERLAY — Tap prompt + post-placement hints
-         Managed by tap-place.js state machine.
-    ════════════════════════════════════════════════════════════════════════ -->
     <div class="over" id="hud-over">
 
       <!-- Tap-to-place state -->

@@ -1,9 +1,6 @@
 export const config = {
-  // ─── Hider wall (depth-mask panel behind the 4DS model) ──────────────────
-  // Set enabled: false to remove the wall entirely — useful when debugging
-  // model placement or testing on devices where the depth mask causes issues.
   hidewall: {
-    enabled: false, // toggle this to show/hide the wall
+    enabled: false,
   },
 
   lighting: {
@@ -55,10 +52,6 @@ export const config = {
       baseScale: 1, // multiplied with detectionScale to get final scale
     },
 
-    // ── Ground-tap specific ───────────────────────────────────────────────────
-    // tapDetectionScale replaces the physical image-target size (metres) that
-    // popout-AR derived from image-target detection.  Increase if the model
-    // appears too small, decrease if too large.
     tapDetectionScale: 1.0,
 
     // Pinch-to-resize limits (in final scene units).

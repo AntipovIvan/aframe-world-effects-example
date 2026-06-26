@@ -77,11 +77,6 @@ const config = {
     publicPath: "/",
   },
   plugins: [
-    // ── Fix "process is not defined" in web4dvResource.js ───────────────────
-    // web4dvResource uses `process.env.PUBLIC_PATH` to build the CODEC URLs
-    // inside the web worker. DefinePlugin replaces it at bundle time so the
-    // browser never sees a reference to Node's `process` object.
-    // Must match output.publicPath above.
     new webpack.DefinePlugin({
       "process.env.PUBLIC_PATH": JSON.stringify("/"),
     }),
@@ -109,8 +104,6 @@ const config = {
           to: path.join(distPath, "image-targets"),
           noErrorOnMissing: true,
         },
-        // ── Copy CODEC binaries to dist/web4dv/ for production builds ────────
-        // In dev mode these are served directly via devServer.static below.
         {
           from: web4dvSrc,
           to: web4dvDist,
@@ -141,10 +134,6 @@ const config = {
     liveReload: false,
     allowedHosts: [".ngrok-free.dev"],
 
-    // ── Serve CODEC binaries at /web4dv/ in dev mode ────────────────────────
-    // webpack-dev-server keeps CopyWebpackPlugin output in memory; the worker
-    // fetches these files via importScripts so they must be on a real URL.
-    // devServer.static serves them straight from disk at the matching path.
     static: [
       {
         directory: web4dvSrc,

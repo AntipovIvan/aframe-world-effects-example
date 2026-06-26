@@ -6,11 +6,6 @@ body {
   padding: 0;
 }
 
-/* ── Shared full-screen overlay base ──────────────────────────────────────── */
-/*
- * Both #error-overlay and #loading-overlay sit above the A-Frame canvas
- * (z-index 999999) but below xrextras permission overlays (~1000000).
- */
 .full-screen-overlay {
   z-index: 10000001;
   position: fixed;
@@ -182,11 +177,6 @@ body {
   margin: 0;
 }
 
-/* ── HUD overlay (sits above a-canvas, below xrextras) ───────────────────── */
-/*
- * 8th Wall sets .a-canvas to z-index 999999.
- * UI must sit above that but below xrextras permission overlays (~820).
- */
 .over {
   z-index: 10000000;
   pointer-events: none;

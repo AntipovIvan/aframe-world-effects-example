@@ -102,9 +102,6 @@ const player4dsComponent = () => ({
       this.applyScale();
     }
 
-    // A-Frame always provides freshly-created objects for vec3/vec4 schema
-    // types, so !== always returns true even when the values are identical.
-    // Compare individual numeric components to detect real changes.
     const posChanged =
       oldData.position?.x !== this.data.position.x ||
       oldData.position?.y !== this.data.position.y ||
