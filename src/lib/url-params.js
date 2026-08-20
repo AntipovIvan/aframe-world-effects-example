@@ -34,6 +34,31 @@ function resolveFloat(keys, json, search) {
   return null;
 }
 
+function resolveBool(keys, json, search) {
+  const parse = (v) => {
+    if (typeof v === "boolean") return v;
+    const s = String(v).trim().toLowerCase();
+    if (["true", "1", "yes"].includes(s)) return true;
+    if (["false", "0", "no"].includes(s)) return false;
+    return null;
+  };
+  for (const k of keys) {
+    const v = json?.[k];
+    if (v !== undefined && v !== null) {
+      const b = parse(v);
+      if (b !== null) return b;
+    }
+  }
+  for (const k of keys) {
+    const v = search.get(k);
+    if (v !== null && v !== "") {
+      const b = parse(v);
+      if (b !== null) return b;
+    }
+  }
+  return null;
+}
+
 // ─── Main initialiser ─────────────────────────────────────────────────────────
 
 export async function initUrlParams() {
@@ -77,6 +102,10 @@ export async function initUrlParams() {
     endImage: resolveString(["endImage", "image"], json, search),
     ctaUrl: resolveString(["ctaUrl", "url"], json, search),
 
+    // null = not specified by this link; caller falls back to config default.
+    riseIn: resolveBool(["riseIn"], json, search),
+    sinkOut: resolveBool(["sinkOut"], json, search),
+
     _usedParamsUrl: !!paramsUrl,
     _paramsUrl: paramsUrl ?? null,
   });
@@ -84,6 +113,8 @@ export async function initUrlParams() {
     vvdata: urlParams.vvdata,
     endImage: urlParams.endImage,
     ctaUrl: urlParams.ctaUrl,
+    riseIn: urlParams.riseIn,
+    sinkOut: urlParams.sinkOut,
   });
 
   return urlParams;

@@ -1,6 +1,10 @@
 import { urlParams } from "./lib/url-params.js";
 import { config } from "./lib/config.js";
 
+function resolveToggle(urlValue, configDefault) {
+  return urlValue !== null && urlValue !== undefined ? urlValue : configDefault;
+}
+
 // ─── State machine ────────────────────────────────────────────────────────────
 
 const STATE = {
@@ -208,12 +212,25 @@ export const tapPlaceComponent = {
 
     const hasEndContent = !!(urlParams.endImage || urlParams.ctaUrl);
 
+    // Ground emerge/exit toggles — per-link URL param overrides config.js.
+    const riseInEnabled = resolveToggle(
+      urlParams.riseIn,
+      config.riseInOut.riseIn,
+    );
+    const sinkOutEnabled = resolveToggle(
+      urlParams.sinkOut,
+      config.riseInOut.sinkOut,
+    );
+    this._riseInEnabled = riseInEnabled;
+
+    const playOnce = hasEndContent || sinkOutEnabled;
+
     // Step 1 — set url + transform + loop mode (triggers load4ds())
     player.setAttribute("player4ds-component", {
       url: urlParams.vvdata,
       isPlaying: false,
       isVisible: false,
-      isLoop: !hasEndContent,
+      isLoop: !playOnce,
       scale: scale,
       position: { x: modelPos.x, y: modelPos.y, z: modelPos.z },
       quaternion: {
@@ -222,6 +239,7 @@ export const tapPlaceComponent = {
         z: quaternion.z,
         w: quaternion.w,
       },
+      sinkOutEnabled: sinkOutEnabled,
     });
 
     // Step 2 — unlock AudioContext while still inside the user-gesture window.
@@ -239,6 +257,11 @@ export const tapPlaceComponent = {
       "player4ds-loaded",
       () => {
         console.log("[tap-place] player4ds-loaded — starting playback.");
+
+        const comp = player.components?.["player4ds-component"];
+        if (riseInEnabled && comp) {
+          comp.playRiseIn();
+        }
 
         player.setAttribute("player4ds-component", {
           isPlaying: true,
@@ -361,6 +384,16 @@ export const tapPlaceComponent = {
     const count = event.touches.length;
 
     if (count === 0) {
+      const player = document.getElementById("player4ds-panel");
+      if (player && this.state === STATE.DRAGGING) {
+        const p = player.object3D.position;
+        player.setAttribute("player4ds-component", "position", {
+          x: p.x,
+          y: p.y,
+          z: p.z,
+        });
+      }
+
       this.state = STATE.PLACED;
       this.dragTouchId = null;
     } else if (count === 1 && this.state === STATE.PINCHING) {

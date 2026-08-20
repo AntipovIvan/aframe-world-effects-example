@@ -7,11 +7,17 @@ A mobile WebAR experience built with **8th Wall**, **A-Frame**, and a **4DS (vol
 ## How It Works
 
 ```
-User opens link → Camera activates → Tap the ground → 4DS model loads and plays
+User opens link → Camera activates → Tap the ground → 4DS model loads
+                                                          ↓ (if riseIn set)
+                                              Model grows up out of the ground
                                                           ↓
                                               Drag to move · Pinch to resize
+                                                          ↓ (if endImage / ctaUrl / sinkOut set)
+                                              Sequence ends
+                                                          ↓ (if sinkOut set)
+                                              Model shrinks back into the ground
                                                           ↓ (if endImage / ctaUrl set)
-                                              Sequence ends → End-screen image pops up
+                                              End-screen image pops up
                                                           ↓ (if ctaUrl set)
                                               Tap image → Opens URL in new tab
 ```
@@ -99,6 +105,12 @@ With end-screen:
 https://yourdomain.com/index.html?vvData=https://cdn.example.com/sequence.4ds&image=https://cdn.example.com/banner.jpg&url=https://example.com/product
 ```
 
+With ground emerge/exit:
+
+```
+https://yourdomain.com/index.html?vvData=https://cdn.example.com/sequence.4ds&riseIn=true&sinkOut=true
+```
+
 ### Supported Parameters
 
 | Parameter | Aliases | Required | Description |
@@ -106,8 +118,12 @@ https://yourdomain.com/index.html?vvData=https://cdn.example.com/sequence.4ds&im
 | `vvData` | `vvdata` | ✅ | URL of the `.4ds` volumetric sequence |
 | `endImage` | `image` | — | URL of an image shown after the sequence ends. When set, the 4DS plays once (no loop) |
 | `ctaUrl` | `url` | — | URL opened in a new tab when the user taps the end-screen image. Requires `endImage` to be set |
+| `riseIn` | — | — | `true`/`false`. Model grows up out of the ground on placement instead of appearing instantly. Overrides `config.riseInOut.riseIn` for this link |
+| `sinkOut` | — | — | `true`/`false`. Model shrinks back into the ground when the sequence ends, instead of just stopping. Overrides `config.riseInOut.sinkOut` for this link. Forces the sequence to play once (no loop), same as setting `endImage`/`ctaUrl` |
 
-> **End-screen behaviour:** if either `endImage` or `ctaUrl` is detected, the 4DS plays **once** from start to finish (no looping). When the sequence ends, a full-screen overlay appears showing the image. If `ctaUrl` is also set, tapping the image opens that URL in a new tab and a "タップして開く" hint is shown below the image. Without `ctaUrl` the image is display-only.
+> **End-screen behaviour:** if `endImage`, `ctaUrl`, or `sinkOut` is set, the 4DS plays **once** from start to finish (no looping). When the sequence ends, it sinks into the ground first if `sinkOut` is enabled, then — if `endImage` or `ctaUrl` is set — a full-screen overlay appears showing the image. If `ctaUrl` is also set, tapping the image opens that URL in a new tab and a "タップして開く" hint is shown below the image. Without `ctaUrl` the image is display-only.
+>
+> **Rise/sink behaviour:** `riseIn` and `sinkOut` are independent — enable either or both. Both default to `false` (`config.riseInOut`), so a bare link with neither param behaves exactly like standard WebAR: the model just appears and disappears normally. The grow/shrink animation is a scale + local-height tween (no ground clipping), tuned via `config.riseInOut.duration` and `config.riseInOut.sinkDepth`.
 
 ---
 
@@ -132,6 +148,11 @@ config.model4D.tapScaleMax       // maximum scale when pinching
 
 config.lighting.directional.shadowMapSize   // 512 / 1024 / 2048
 config.model4D.spotlight.enabled            // toggle shadow spotlight
+
+config.riseInOut.riseIn     // default for the grow-out-of-ground effect (URL riseIn= overrides per link)
+config.riseInOut.sinkOut    // default for the shrink-into-ground effect (URL sinkOut= overrides per link)
+config.riseInOut.duration   // seconds, applies to both rise and sink
+config.riseInOut.sinkDepth  // local metres the model drops while sinking (in addition to scaling to 0)
 ```
 
 ---
@@ -143,7 +164,8 @@ config.model4D.spotlight.enabled            // toggle shadow spotlight
 | **No valid link** | Error overlay: "Experience Not Available" + developer hint |
 | **Waiting to tap** | AR camera view + animated tap indicator + "タップして配置 / カメラを地面に向けて、タップしてください" |
 | **Loading** | Frosted-glass spinner overlay: "Loading experience…" |
-| **Placed & playing** | Full AR view + "ドラッグして移動 · ピンチしてサイズ変更" pill |
+| **Placed & playing** | Full AR view + "ドラッグして移動 · ピンチしてサイズ変更" pill (model grows up from the ground first if `riseIn` is set) |
+| **Sequence ends** | Model shrinks back into the ground if `sinkOut` is set, otherwise just stops |
 | **End screen** | Full-screen image overlay (play-once mode only). Tappable if `ctaUrl` is set |
 
 ---

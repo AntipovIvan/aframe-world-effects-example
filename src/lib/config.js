@@ -58,6 +58,23 @@ export const config = {
     tapScaleMin: 0.05,
     tapScaleMax: 10.0,
   },
+
+  riseInOut: {
+    riseIn: false, // model slides up out of the ground on placement
+    sinkOut: false, // model slides back down into the ground when playback ends
+    duration: 2.0, // seconds, applies to both rise and sink (per user request: ~2s)
+    // How far below the clip plane (ground level) the model sits when fully
+    // sunk, as a multiple of the model's own local-space height. 1.0 means
+    // "drop it exactly its own height" — guaranteed to clear the ground
+    // clip plane regardless of the model's real-world scale, since it's
+    // measured in the model's own local units (pre-scale), same as the
+    // bounding box used to compute it.
+    sinkDepthMultiplier: 1.15,
+
+    // Fallback local-space height (metres) used only if the model's bounding
+    // box can't be measured yet when the first RiseIn/SinkOut kicks off.
+    sinkDepthFallback: 2.0,
+  },
 };
 
 export default config;

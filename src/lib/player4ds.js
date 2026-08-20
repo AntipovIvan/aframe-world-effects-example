@@ -1,6 +1,14 @@
 import WEB4DS from "./web4dvImporter.js";
+import { config } from "./config.js";
 
 const TIME_EMIT_INTERVAL_MS = 200;
+
+const easeInOutCubic = (t) =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+function riseSinkEase(t, from, to) {
+  return from + (to - from) * easeInOutCubic(t);
+}
 
 const player4dsComponent = () => ({
   schema: {
@@ -15,6 +23,7 @@ const player4dsComponent = () => ({
     onUserAction: { type: "bool", default: false },
     currentTimeSec: { type: "number", default: 0 },
     totalTimeSec: { type: "number", default: 0 },
+    sinkOutEnabled: { type: "bool", default: false },
   },
 
   // ─── Initialisation ──────────────────────────────────────────────────────────
@@ -31,6 +40,13 @@ const player4dsComponent = () => ({
     this._settingUp = false;
     this.updatedTimeEventName = "updated4dsTimeEvent";
     this.endedEventName = "player4ds-ended";
+
+    // ── Rise/sink (ground emerge-exit) state ──────────────────────────────────
+    this.riseSinkProgress = 1;
+    this._riseSinkAnim = null;
+    this._sinkDepth = null;
+    this._groundClipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    this._clipApplied = false;
 
     const sceneEl = this.el.sceneEl;
     if (sceneEl.hasLoaded) {
@@ -72,6 +88,10 @@ const player4dsComponent = () => ({
     this.scene = sceneEl.object3D;
     this.camera = cameraEl.object3D;
 
+    if (!this.renderer.localClippingEnabled) {
+      this.renderer.localClippingEnabled = true;
+    }
+
     if (this.data.url) {
       this.load4ds();
     }
@@ -87,7 +107,7 @@ const player4dsComponent = () => ({
     }
 
     if (oldData.isPlaying !== this.data.isPlaying) {
-      this.data.isPlaying ? this.play() : this.pause();
+      this.data.isPlaying ? this.startPlayback() : this.stopPlayback();
     }
 
     if (oldData.isVisible !== this.data.isVisible) {
@@ -123,8 +143,8 @@ const player4dsComponent = () => ({
       if (this.web4ds?.audioCtx && this.web4ds.audioCtx.state === "suspended") {
         this.web4ds.audioCtx.resume();
       }
-      this.play();
-      this.pause();
+      this.startPlayback();
+      this.stopPlayback();
       this.el.setAttribute("player4ds-component", "onUserAction", false);
     }
   },
@@ -165,14 +185,13 @@ const player4dsComponent = () => ({
       this.el.emit("player4ds-loaded");
 
       if (this.data.isPlaying) {
-        setTimeout(() => this.play(), 100);
+        setTimeout(() => this.startPlayback(), 100);
       }
     });
   },
 
   // ─── Playback controls ───────────────────────────────────────────────────────
-
-  play() {
+  startPlayback() {
     if (!this.web4ds) return;
 
     if (this.web4ds.audioCtx?.state === "suspended") {
@@ -184,7 +203,7 @@ const player4dsComponent = () => ({
     }
   },
 
-  pause() {
+  stopPlayback() {
     this.web4ds?.pause();
   },
 
@@ -201,9 +220,27 @@ const player4dsComponent = () => ({
   applyScale() {
     const mesh = this.web4ds?.model4D?.mesh;
     if (!mesh) return;
-
     const s = this.data.isVisible ? this.data.scale : 0;
     mesh.scale.set(s, s, s);
+  },
+
+  _getSinkDepth() {
+    if (this._sinkDepth != null) return this._sinkDepth;
+
+    const mesh = this.web4ds?.model4D?.mesh;
+    if (mesh?.geometry) {
+      mesh.geometry.computeBoundingBox();
+      const bbox = mesh.geometry.boundingBox;
+      if (bbox && isFinite(bbox.min.y) && isFinite(bbox.max.y)) {
+        const height = bbox.max.y - bbox.min.y;
+        if (height > 0) {
+          const mult = config.riseInOut.sinkDepthMultiplier ?? 1.15;
+          this._sinkDepth = height * mult + bbox.max.y;
+          return this._sinkDepth;
+        }
+      }
+    }
+    return config.riseInOut.sinkDepthFallback ?? 2.0;
   },
 
   applyPosition() {
@@ -215,7 +252,74 @@ const player4dsComponent = () => ({
 
     const mesh = this.web4ds?.model4D?.mesh;
     if (mesh) {
-      mesh.position.set(0, 0, 0);
+      const sinkDepth = this._getSinkDepth();
+      const yOffset = -sinkDepth * (1 - this.riseSinkProgress);
+      mesh.position.set(0, yOffset, 0);
+    }
+
+    this.applyGroundClip();
+  },
+
+  applyGroundClip() {
+    const material = this.web4ds?.model4D?.material;
+    if (!material) return;
+
+    const shouldClip = this.riseSinkProgress < 1 || !!this._riseSinkAnim;
+
+    if (shouldClip) {
+      this._groundClipPlane.constant = -this.el.object3D.position.y;
+      if (!this._clipApplied) {
+        material.clippingPlanes = [this._groundClipPlane];
+        material.clipShadows = true; // don't cast a shadow from the hidden portion
+        this._clipApplied = true;
+      }
+    } else if (this._clipApplied) {
+      material.clippingPlanes = null;
+      this._clipApplied = false;
+    }
+  },
+
+  // ─── Rise / sink (ground emerge-exit) ────────────────────────────────────────
+  playRiseIn(onComplete) {
+    const duration = Math.max(0.01, config.riseInOut.duration ?? 0.6);
+    this._sinkDepth = null; // re-measure from the mesh's current shape
+    this.riseSinkProgress = 0;
+    this.applyScale();
+    this.applyPosition();
+    this._riseSinkAnim = {
+      from: 0,
+      to: 1,
+      elapsed: 0,
+      duration,
+      onComplete: onComplete ?? null,
+    };
+  },
+
+  playSinkOut(onComplete) {
+    const duration = Math.max(0.01, config.riseInOut.duration ?? 0.6);
+    this._sinkDepth = null; // re-measure from the mesh's current (final-frame) shape
+    this._riseSinkAnim = {
+      from: this.riseSinkProgress,
+      to: 0,
+      elapsed: 0,
+      duration,
+      onComplete: onComplete ?? null,
+    };
+  },
+
+  _tickRiseSink(deltaSec) {
+    const anim = this._riseSinkAnim;
+    if (!anim) return;
+
+    anim.elapsed += deltaSec;
+    const t = Math.min(1, anim.elapsed / anim.duration);
+    this.riseSinkProgress = riseSinkEase(t, anim.from, anim.to);
+    this.applyScale();
+    this.applyPosition();
+
+    if (t >= 1) {
+      this._riseSinkAnim = null;
+      anim.onComplete?.();
     }
   },
 
@@ -243,7 +347,7 @@ const player4dsComponent = () => ({
 
   // ─── Per-frame update ────────────────────────────────────────────────────────
 
-  tick(time /* ms since scene start */, _deltaTime) {
+  tick(time /* ms since scene start */, deltaTime) {
     if (!this.web4ds) return;
 
     if (!this.meshInitialized && this.web4ds.model4D?.mesh) {
@@ -251,6 +355,10 @@ const player4dsComponent = () => ({
       this.applyPosition();
       this.applyRotation();
       this.meshInitialized = true;
+    }
+
+    if (this._riseSinkAnim) {
+      this._tickRiseSink((deltaTime ?? 0) / 1000);
     }
 
     if (!this.isLoaded) return;
@@ -270,10 +378,17 @@ const player4dsComponent = () => ({
           this.isLastFrameChecked = true;
         }
       } else if (this.web4ds.currentFrame < 5) {
-        this.pause();
-        this.el.dispatchEvent(new Event(this.endedEventName));
+        this.stopPlayback();
         this.isLastFrameChecked = false;
         this.isLastFrameCheckSecValid = false;
+
+        if (this.data.sinkOutEnabled) {
+          this.playSinkOut(() => {
+            this.el.dispatchEvent(new Event(this.endedEventName));
+          });
+        } else {
+          this.el.dispatchEvent(new Event(this.endedEventName));
+        }
       }
     }
 
@@ -303,6 +418,10 @@ const player4dsComponent = () => ({
     this.isLoaded = false;
     this.isReadyForPlayback = false;
     this.meshInitialized = false;
+    this.riseSinkProgress = 1;
+    this._riseSinkAnim = null;
+    this._sinkDepth = null;
+    this._clipApplied = false;
     this.isLastFrameChecked = false;
     this.isLastFrameCheckSecValid = false;
     this._lastEmitMs = 0;
