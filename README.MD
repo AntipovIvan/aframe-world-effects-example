@@ -89,6 +89,12 @@ With ground emerge/exit:
 https://yourdomain.com/index.html?vvdata=https://cdn.example.com/sequence.4ds&enable-risein=true&enable-sinkout=true
 ```
 
+With video recording:
+
+```
+https://yourdomain.com/index.html?vvdata=https://cdn.example.com/sequence.4ds&enable-record=true&max-record-ms=15000
+```
+
 ### Supported Parameters
 
 #### Basic
@@ -107,6 +113,8 @@ https://yourdomain.com/index.html?vvdata=https://cdn.example.com/sequence.4ds&en
 | `max-record-ms` | `60000` | Overrides the recording length in milliseconds (applied onto `<xrextras-capture-config max-duration-ms>` in `src/index.html`) |
 
 Recordings are produced by 8th Wall's xrextras capture pipeline (`<xrextras-capture-button>` / `<xrextras-capture-preview>` in `src/index.html`). The capture button's visibility/z-index and record lifecycle handling live in `src/lib/capture.js`. The 4DS audio graph is routed into the recording via `XR8.MediaRecorder.configure()` (see `src/lib/player4ds.js`).
+
+> **Loop-mode note:** the auto stop-and-hide is driven by `player4ds-ended`, which only fires in play-once mode. If the sequence loops (no `link-image`/`link-url`/`enable-sinkout`), the capture button stays visible until the page is closed — the user simply stops their own recordings manually.
 
 #### RiseIn
 
@@ -180,6 +188,12 @@ config.object.enableAlwaysTapPlace    // enable-always-tap-place default
 config.object.enablePinchScale        // enable-pinch-scale default
 config.object.enableSwipeRotation     // enable-swipe-rotation default
 config.object.defaultScale            // default-scale default
+
+// Record — defaults for the matching URL params
+config.record.enableRecord            // enable-record default
+config.record.maxDurationMs           // fallback max length in ms;
+                                      // must match <xrextras-capture-config
+                                      // max-duration-ms> in src/index.html
 ```
 
 ---
@@ -191,9 +205,10 @@ config.object.defaultScale            // default-scale default
 | **No valid link** | Error overlay: "Experience Not Available" + developer hint |
 | **Waiting to tap** | AR camera view + animated tap indicator + "タップして配置 / カメラを地面に向けて、タップしてください" |
 | **Loading** | Frosted-glass spinner overlay: "Loading experience…" |
-| **Placed & playing** | Full AR view + "ドラッグして移動 · ピンチしてサイズ変更" pill (model grows up from the ground first if `enable-risein` is set) |
+| **Placed & playing** | Full AR view + "ドラッグして移動 · ピンチしてサイズ変更" pill (model grows up from the ground first if `enable-risein` is set). With `enable-record=true`, a video-capture button also appears |
 | **Re-placing** | If `enable-always-tap-place` is on (default), tapping the ground again moves the object to the new spot |
-| **Sequence ends** | Model shrinks back into the ground if `enable-sinkout` is set, otherwise just stops |
+| **Recording** *(with `enable-record`)* | Tap the capture button to record the camera feed + model (capped at `max-record-ms`). A full-screen preview opens when the recording finishes; saving/sharing is handled by xrextras |
+| **Sequence ends** | Model shrinks back into the ground if `enable-sinkout` is set, otherwise just stops. Any in-progress recording is force-stopped and the capture button hides |
 | **End screen** | Full-screen image overlay (play-once mode only). Tappable if `link-url` is set |
 
 ---
