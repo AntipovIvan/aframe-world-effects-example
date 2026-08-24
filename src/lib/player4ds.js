@@ -51,6 +51,7 @@ const player4dsComponent = () => ({
     this.lastFrameCheckSec = 0;
     this.isLastFrameChecked = false;
     this.isLastFrameCheckSecValid = false;
+    this._ended = false;
     this._lastEmitMs = 0;
     this._mediaRecorderAudioConfigured = false;
     this._settingUp = false;
@@ -209,6 +210,9 @@ const player4dsComponent = () => ({
   // ─── Playback controls ───────────────────────────────────────────────────────
   startPlayback() {
     if (!this.web4ds) return;
+
+    // New playback session — re-arm the play-once end detection.
+    this._ended = false;
 
     if (this.web4ds.audioCtx?.state === "suspended") {
       this.web4ds.audioCtx.resume();
@@ -394,17 +398,23 @@ const player4dsComponent = () => ({
       this.web4ds.update();
     }
 
-    if (!this.data.isLoop && this.data.isPlaying) {
+    if (!this.data.isLoop && this.data.isPlaying && !this._ended) {
       if (!this.isLastFrameCheckSecValid) {
-        this.lastFrameCheckSec = this.web4ds.sequenceTotalLength * 0.9;
+        this.lastFrameCheckSec = this.web4ds.sequenceTotalLength * 0.95;
         this.isLastFrameCheckSecValid = true;
       }
+
+      const reachedEnd =
+        this.web4ds.currentFrame >= this.web4ds.sequenceTotalLength - 1;
+      const wrappedAround =
+        this.isLastFrameChecked && this.web4ds.currentFrame < 2;
 
       if (!this.isLastFrameChecked) {
         if (this.web4ds.currentFrame > this.lastFrameCheckSec) {
           this.isLastFrameChecked = true;
         }
-      } else if (this.web4ds.currentFrame < 5) {
+      } else if (reachedEnd || wrappedAround) {
+        this._ended = true;
         this.stopPlayback();
         this.isLastFrameChecked = false;
         this.isLastFrameCheckSecValid = false;
@@ -451,6 +461,7 @@ const player4dsComponent = () => ({
     this._clipApplied = false;
     this.isLastFrameChecked = false;
     this.isLastFrameCheckSecValid = false;
+    this._ended = false;
     this._lastEmitMs = 0;
     this._mediaRecorderAudioConfigured = false;
   },
