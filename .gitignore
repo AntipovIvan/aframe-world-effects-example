@@ -2,4 +2,3 @@ node_modules
 dist
 tmp
 .DS_Store
-popout-ar-template
