@@ -84,6 +84,19 @@ export const config = {
     enableRecord: true, // enable-record default — show the capture button
     maxDurationMs: 60000, // fallback; index.html's max-duration-ms must match
   },
+
+  // ── Repeat / Replay ───────────────────────────────────────────────────────
+  // Defaults for the repeat-playback parameters. Precedence: a full
+  // link-image + link-url pair always plays exactly once (the end screen
+  // needs an ending); otherwise enable-repeat forces looping; otherwise
+  // enable-sinkout forces one-shot playback; with nothing set the sequence
+  // loops. replay-after-sinkout instead makes each playthrough end with a
+  // SinkOut followed by an automatic RiseIn replay after replay-delay-ms.
+  repeat: {
+    enableRepeat: false, // enable-repeat default — force looping
+    replayAfterSinkOut: false, // replay-after-sinkout default — cyclic replay
+    replayDelayMs: 1000, // replay-delay-ms default — pause before replaying
+  },
 };
 
 export default config;

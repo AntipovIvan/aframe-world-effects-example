@@ -141,7 +141,15 @@ Recordings are produced by 8th Wall's xrextras capture pipeline (`<xrextras-capt
 | `link-url` | — | URL opened in a new tab when the user taps the end-screen image |
 | `link-image` | — | Image shown on the full-screen overlay after the sequence ends |
 
-> Setting `link-image`, `link-url`, or `enable-sinkout` forces the 4DS to play **once** (no loop).
+> **Playback mode precedence:** a full `link-image` + `link-url` pair always plays **once** (the end screen needs the sequence to finish). Otherwise `enable-repeat=true` loops unconditionally. Otherwise `enable-sinkout` still forces one-shot playback. With none of these the sequence loops by default.
+
+#### Repeat / Replay
+
+| Parameter | Default | Description |
+|-----------|---------|--------------|
+| `enable-repeat` | `false` | `true`: force looping playback even when sink-out parameters would normally force one-shot playback. Ignored when both `link-image` and `link-url` are set |
+| `replay-after-sinkout` | `false` | `true`: after each finished playthrough (and its SinkOut), automatically rise back up and play again after `replay-delay-ms`, forming a rise → play → sink → … cycle. Suppressed when both `link-image` and `link-url` are set |
+| `replay-delay-ms` | `1000` | Pause between SinkOut completing and the next RiseIn replay, in milliseconds |
 
 #### Object
 
@@ -194,6 +202,11 @@ config.record.enableRecord            // enable-record default
 config.record.maxDurationMs           // fallback max length in ms;
                                       // must match <xrextras-capture-config
                                       // max-duration-ms> in src/index.html
+
+// Repeat / Replay — defaults for the matching URL params
+config.repeat.enableRepeat            // enable-repeat default
+config.repeat.replayAfterSinkOut      // replay-after-sinkout default
+config.repeat.replayDelayMs           // replay-delay-ms default
 ```
 
 ---

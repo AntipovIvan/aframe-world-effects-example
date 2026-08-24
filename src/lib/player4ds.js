@@ -39,6 +39,19 @@ const player4dsComponent = () => ({
       type: "number",
       default: config.riseInOut.sinkOutHeightM,
     },
+
+    // play-after-risein — whether playback starts only after RiseIn
+    // completes (also honoured by the replay-after-sinkout cycle).
+    playAfterRiseIn: {
+      type: "bool",
+      default: config.riseInOut.playAfterRiseIn,
+    },
+
+    // replay-after-sinkout / replay-delay-ms — when enabled, each finished
+    // playthrough automatically rises back up and plays again after the
+    // configured delay, forming a rise → play → sink → … cycle.
+    replayAfterSinkOut: { type: "bool", default: false },
+    replayDelayMs: { type: "number", default: 1000 },
   },
 
   // ─── Initialisation ──────────────────────────────────────────────────────────
@@ -52,6 +65,7 @@ const player4dsComponent = () => ({
     this.isLastFrameChecked = false;
     this.isLastFrameCheckSecValid = false;
     this._ended = false;
+    this._replayTimeoutId = null;
     this._lastEmitMs = 0;
     this._mediaRecorderAudioConfigured = false;
     this._settingUp = false;
@@ -313,6 +327,34 @@ const player4dsComponent = () => ({
     };
   },
 
+  // ─── Replay (replay-after-sinkout) ───────────────────────────────────────────
+  // After a playthrough ends (and any SinkOut has settled), waits
+  // replay-delay-ms, then rises back up and plays again — forming a full
+  // rise → play → sink → … cycle. No-op unless replayAfterSinkOut is set.
+
+  scheduleReplay() {
+    if (!this.data.replayAfterSinkOut) return;
+    this.cancelReplay();
+    const delayMs = Math.max(0, this.data.replayDelayMs ?? 1000);
+    this._replayTimeoutId = setTimeout(() => {
+      this._replayTimeoutId = null;
+      if (!this.web4ds || !this.isReadyForPlayback) return;
+      if (this.data.playAfterRiseIn) {
+        this.playRiseIn(() => this.startPlayback());
+      } else {
+        this.playRiseIn();
+        this.startPlayback();
+      }
+    }, delayMs);
+  },
+
+  cancelReplay() {
+    if (this._replayTimeoutId !== null) {
+      clearTimeout(this._replayTimeoutId);
+      this._replayTimeoutId = null;
+    }
+  },
+
   _tickRiseSink(deltaSec) {
     const anim = this._riseSinkAnim;
     if (!anim) return;
@@ -422,9 +464,11 @@ const player4dsComponent = () => ({
         if (this.data.sinkOutEnabled) {
           this.playSinkOut(() => {
             this.el.dispatchEvent(new Event(this.endedEventName));
+            this.scheduleReplay();
           });
         } else {
           this.el.dispatchEvent(new Event(this.endedEventName));
+          this.scheduleReplay();
         }
       }
     }
@@ -448,6 +492,7 @@ const player4dsComponent = () => ({
   },
 
   destroy() {
+    this.cancelReplay();
     if (this.web4ds) {
       this.web4ds.destroy();
       this.web4ds = null;
@@ -462,6 +507,7 @@ const player4dsComponent = () => ({
     this.isLastFrameChecked = false;
     this.isLastFrameCheckSecValid = false;
     this._ended = false;
+    this._replayTimeoutId = null;
     this._lastEmitMs = 0;
     this._mediaRecorderAudioConfigured = false;
   },

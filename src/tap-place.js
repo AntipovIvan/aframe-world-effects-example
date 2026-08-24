@@ -293,7 +293,43 @@ export const tapPlaceComponent = {
     );
     this._riseInEnabled = riseInEnabled;
 
-    const playOnce = showLinkOverlay || sinkOutEnabled;
+    // ── Repeat / Replay rules ─────────────────────────────────────────────────
+    // Precedence:
+    //   1. link-image AND link-url both present → play exactly once (the
+    //      end-screen overlay needs the sequence to finish). Never repeats.
+    //   2. Otherwise enable-repeat=true → loop, even if sink-out is
+    //      configured (a looping sequence never ends, so it never sinks).
+    //   3. Otherwise legacy behaviour: enable-sinkout forces one-shot
+    //      playback; with nothing set the sequence loops.
+    // replay-after-sinkout (suppressed when rule 1 applies) additionally
+    // makes each finished playthrough rise up and play again after a pause —
+    // handled inside player4ds-component via scheduleReplay().
+    const hasEndScreenLink = !!(urlParams.linkImage && urlParams.linkUrl);
+    const repeatEnabled = resolveToggle(
+      urlParams.enableRepeat,
+      config.repeat.enableRepeat,
+    );
+    const replayAfterSinkOut =
+      !hasEndScreenLink &&
+      resolveToggle(
+        urlParams.replayAfterSinkOut,
+        config.repeat.replayAfterSinkOut,
+      );
+    const replayDelayMs = resolveNumber(
+      urlParams.replayDelayMs,
+      config.repeat.replayDelayMs,
+    );
+
+    let playOnce;
+    if (hasEndScreenLink) {
+      playOnce = true;
+    } else if (repeatEnabled && !sinkOutEnabled) {
+      playOnce = false;
+    } else {
+      // One-shot when sink-out is on (it needs an ending to trigger) or when
+      // cyclic replay is requested; loop otherwise.
+      playOnce = sinkOutEnabled || replayAfterSinkOut;
+    }
 
     // Step 1 — set url + transform + loop mode + rise/sink config (triggers load4ds())
     player.setAttribute("player4ds-component", {
@@ -310,6 +346,9 @@ export const tapPlaceComponent = {
         w: quaternion.w,
       },
       sinkOutEnabled: sinkOutEnabled,
+      playAfterRiseIn: playAfterRiseIn,
+      replayAfterSinkOut: replayAfterSinkOut,
+      replayDelayMs: replayDelayMs,
       riseInIntervalMs: riseInIntervalMs,
       riseInHeightM: riseInHeightM,
       sinkOutIntervalMs: sinkOutIntervalMs,

@@ -32,6 +32,11 @@ const KEYS = {
   // Record
   enableRecord: ["enable-record"],
   maxRecordMs: ["max-record-ms"],
+
+  // Repeat / Replay
+  enableRepeat: ["enable-repeat"],
+  replayAfterSinkOut: ["replay-after-sinkout"],
+  replayDelayMs: ["replay-delay-ms"],
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -159,6 +164,11 @@ export async function initUrlParams() {
     // ── Record ─────────────────────────────────────────────────────────────
     enableRecord: resolveBool(KEYS.enableRecord, json, search),
     maxRecordMs: resolveFloat(KEYS.maxRecordMs, json, search),
+
+    // ── Repeat / Replay ────────────────────────────────────────────────────
+    enableRepeat: resolveBool(KEYS.enableRepeat, json, search),
+    replayAfterSinkOut: resolveBool(KEYS.replayAfterSinkOut, json, search),
+    replayDelayMs: resolveFloat(KEYS.replayDelayMs, json, search),
 
     _usedParamsUrl: !!paramsUrl,
     _paramsUrl: paramsUrl ?? null,
