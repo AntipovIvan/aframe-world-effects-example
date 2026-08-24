@@ -128,6 +128,20 @@
           isLoop   : false;">
       </a-entity>
 
+      <!-- Record feature (enable-record / max-record-ms) — xrextras video capture -->
+      <div id="captureButtonWrap" hidden>
+        <xrextras-capture-button capture-mode="fixed"></xrextras-capture-button>
+      </div>
+      <xrextras-capture-config
+        max-duration-ms="60000"
+        max-dimension="1280"
+        enable-end-card="false"
+        file-name-prefix="ar-"
+        include-scene-audio="false"
+        request-mic="manual"
+      ></xrextras-capture-config>
+      <xrextras-capture-preview></xrextras-capture-preview>
+
     </a-scene>
 
     <div class="over" id="hud-over">

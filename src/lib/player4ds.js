@@ -24,6 +24,21 @@ const player4dsComponent = () => ({
     currentTimeSec: { type: "number", default: 0 },
     totalTimeSec: { type: "number", default: 0 },
     sinkOutEnabled: { type: "bool", default: false },
+
+    riseInIntervalMs: {
+      type: "number",
+      default: config.riseInOut.riseInIntervalMs,
+    },
+    riseInHeightM: { type: "number", default: config.riseInOut.riseInHeightM },
+
+    sinkOutIntervalMs: {
+      type: "number",
+      default: config.riseInOut.sinkOutIntervalMs,
+    },
+    sinkOutHeightM: {
+      type: "number",
+      default: config.riseInOut.sinkOutHeightM,
+    },
   },
 
   // ─── Initialisation ──────────────────────────────────────────────────────────
@@ -37,6 +52,7 @@ const player4dsComponent = () => ({
     this.isLastFrameChecked = false;
     this.isLastFrameCheckSecValid = false;
     this._lastEmitMs = 0;
+    this._mediaRecorderAudioConfigured = false;
     this._settingUp = false;
     this.updatedTimeEventName = "updated4dsTimeEvent";
     this.endedEventName = "player4ds-ended";
@@ -44,7 +60,7 @@ const player4dsComponent = () => ({
     // ── Rise/sink (ground emerge-exit) state ──────────────────────────────────
     this.riseSinkProgress = 1;
     this._riseSinkAnim = null;
-    this._sinkDepth = null;
+    this._activeHeightM = 0; // set by playRiseIn/playSinkOut from data.riseInHeightM / sinkOutHeightM
     this._groundClipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     this._clipApplied = false;
 
@@ -224,25 +240,6 @@ const player4dsComponent = () => ({
     mesh.scale.set(s, s, s);
   },
 
-  _getSinkDepth() {
-    if (this._sinkDepth != null) return this._sinkDepth;
-
-    const mesh = this.web4ds?.model4D?.mesh;
-    if (mesh?.geometry) {
-      mesh.geometry.computeBoundingBox();
-      const bbox = mesh.geometry.boundingBox;
-      if (bbox && isFinite(bbox.min.y) && isFinite(bbox.max.y)) {
-        const height = bbox.max.y - bbox.min.y;
-        if (height > 0) {
-          const mult = config.riseInOut.sinkDepthMultiplier ?? 1.15;
-          this._sinkDepth = height * mult + bbox.max.y;
-          return this._sinkDepth;
-        }
-      }
-    }
-    return config.riseInOut.sinkDepthFallback ?? 2.0;
-  },
-
   applyPosition() {
     this.el.object3D.position.set(
       this.data.position.x,
@@ -252,8 +249,7 @@ const player4dsComponent = () => ({
 
     const mesh = this.web4ds?.model4D?.mesh;
     if (mesh) {
-      const sinkDepth = this._getSinkDepth();
-      const yOffset = -sinkDepth * (1 - this.riseSinkProgress);
+      const yOffset = -this._activeHeightM * (1 - this.riseSinkProgress);
       mesh.position.set(0, yOffset, 0);
     }
 
@@ -281,8 +277,11 @@ const player4dsComponent = () => ({
 
   // ─── Rise / sink (ground emerge-exit) ────────────────────────────────────────
   playRiseIn(onComplete) {
-    const duration = Math.max(0.01, config.riseInOut.duration ?? 0.6);
-    this._sinkDepth = null; // re-measure from the mesh's current shape
+    const duration = Math.max(
+      0.01,
+      (this.data.riseInIntervalMs ?? 1000) / 1000,
+    );
+    this._activeHeightM = Math.abs(this.data.riseInHeightM ?? 2.0);
     this.riseSinkProgress = 0;
     this.applyScale();
     this.applyPosition();
@@ -296,8 +295,11 @@ const player4dsComponent = () => ({
   },
 
   playSinkOut(onComplete) {
-    const duration = Math.max(0.01, config.riseInOut.duration ?? 0.6);
-    this._sinkDepth = null; // re-measure from the mesh's current (final-frame) shape
+    const duration = Math.max(
+      0.01,
+      (this.data.sinkOutIntervalMs ?? 1000) / 1000,
+    );
+    this._activeHeightM = Math.abs(this.data.sinkOutHeightM ?? 2.0);
     this._riseSinkAnim = {
       from: this.riseSinkProgress,
       to: 0,
@@ -349,6 +351,31 @@ const player4dsComponent = () => ({
 
   tick(time /* ms since scene start */, deltaTime) {
     if (!this.web4ds) return;
+
+    if (
+      !this._mediaRecorderAudioConfigured &&
+      this.web4ds.gainNode &&
+      window.XR8?.MediaRecorder
+    ) {
+      this._mediaRecorderAudioConfigured = true;
+      try {
+        window.XR8.MediaRecorder.configure({
+          audioContext: this.web4ds.audioCtx,
+          requestMic: window.XR8.MediaRecorder.RequestMicOptions.MANUAL,
+          configureAudioOutput: () => {
+            if (this.web4ds?.audioCtx?.state === "suspended") {
+              this.web4ds.audioCtx.resume();
+            }
+            return this.web4ds.gainNode;
+          },
+        });
+      } catch (err) {
+        console.warn(
+          "[player4ds] Could not route 4DS audio into MediaRecorder:",
+          err,
+        );
+      }
+    }
 
     if (!this.meshInitialized && this.web4ds.model4D?.mesh) {
       this.applyScale();
@@ -420,11 +447,12 @@ const player4dsComponent = () => ({
     this.meshInitialized = false;
     this.riseSinkProgress = 1;
     this._riseSinkAnim = null;
-    this._sinkDepth = null;
+    this._activeHeightM = 0;
     this._clipApplied = false;
     this.isLastFrameChecked = false;
     this.isLastFrameCheckSecValid = false;
     this._lastEmitMs = 0;
+    this._mediaRecorderAudioConfigured = false;
   },
 });
 

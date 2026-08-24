@@ -1,28 +1,6 @@
 # AR Tap-to-Place Experience
 
-A mobile WebAR experience built with **8th Wall**, **A-Frame**, and a **4DS (volumetric video)** player. Users open a link on their phone, point the camera at the ground, tap to place a life-size 4DS model, and interact with it via drag and pinch gestures.
-
----
-
-## How It Works
-
-```
-User opens link → Camera activates → Tap the ground → 4DS model loads
-                                                          ↓ (if riseIn set)
-                                              Model grows up out of the ground
-                                                          ↓
-                                              Drag to move · Pinch to resize
-                                                          ↓ (if endImage / ctaUrl / sinkOut set)
-                                              Sequence ends
-                                                          ↓ (if sinkOut set)
-                                              Model shrinks back into the ground
-                                                          ↓ (if endImage / ctaUrl set)
-                                              End-screen image pops up
-                                                          ↓ (if ctaUrl set)
-                                              Tap image → Opens URL in new tab
-```
-
-The experience **requires a special link** containing a signed token that points to the 4DS content. Opening the bare URL without parameters shows a friendly error screen.
+A mobile WebAR experience built with **8th Wall**, **A-Frame**, and a **4DS (volumetric video)** player. Users open a link on their phone, point the camera at the ground, tap to place a life-size 4DS model, and interact with it via drag, pinch, and twist gestures.
 
 ---
 
@@ -41,7 +19,7 @@ npm install
 npm run serve       # webpack-dev-server with hot reload
 ```
 
-The dev server starts at `http://localhost:8080`.  
+The dev server starts at `http://localhost:8080`.
 Use **ngrok** (or a similar tunnel) to expose it over HTTPS for mobile testing:
 
 ```bash
@@ -66,7 +44,7 @@ The experience is driven by a URL that includes either:
 
 ### Option A — `paramsUrl` (recommended for production)
 
-A URL pointing to a JSON endpoint that returns all parameters.  
+A URL pointing to a JSON endpoint that returns all parameters.
 This keeps tokens out of browser history and allows server-side control.
 
 ```
@@ -79,80 +57,129 @@ The endpoint must return JSON in one of these shapes:
 // Shape 1 — nested under "params" key
 {
   "params": {
-    "vvData":   "https://cdn.example.com/sequence.4ds",
-    "endImage": "https://cdn.example.com/banner.jpg",
-    "ctaUrl":   "https://example.com/product"
+    "vvdata":     "https://cdn.example.com/sequence.4ds",
+    "link-image": "https://cdn.example.com/banner.jpg",
+    "link-url":   "https://example.com/product"
   }
 }
 
 // Shape 2 — flat object
 {
-  "vvData":   "https://cdn.example.com/sequence.4ds",
-  "endImage": "https://cdn.example.com/banner.jpg",
-  "ctaUrl":   "https://example.com/product"
+  "vvdata":     "https://cdn.example.com/sequence.4ds",
+  "link-image": "https://cdn.example.com/banner.jpg",
+  "link-url":   "https://example.com/product"
 }
 ```
 
 ### Option B — Direct query parameters (useful for local testing)
 
 ```
-https://yourdomain.com/index.html?vvData=https://cdn.example.com/sequence.4ds
+https://yourdomain.com/index.html?vvdata=https://cdn.example.com/sequence.4ds
 ```
 
-With end-screen:
+With the Link end-screen:
 
 ```
-https://yourdomain.com/index.html?vvData=https://cdn.example.com/sequence.4ds&image=https://cdn.example.com/banner.jpg&url=https://example.com/product
+https://yourdomain.com/index.html?vvdata=https://cdn.example.com/sequence.4ds&enable-link=true&link-image=https://cdn.example.com/banner.jpg&link-url=https://example.com/product
 ```
 
 With ground emerge/exit:
 
 ```
-https://yourdomain.com/index.html?vvData=https://cdn.example.com/sequence.4ds&riseIn=true&sinkOut=true
+https://yourdomain.com/index.html?vvdata=https://cdn.example.com/sequence.4ds&enable-risein=true&enable-sinkout=true
 ```
 
 ### Supported Parameters
 
-| Parameter | Aliases | Required | Description |
-|-----------|---------|----------|-------------|
-| `vvData` | `vvdata` | ✅ | URL of the `.4ds` volumetric sequence |
-| `endImage` | `image` | — | URL of an image shown after the sequence ends. When set, the 4DS plays once (no loop) |
-| `ctaUrl` | `url` | — | URL opened in a new tab when the user taps the end-screen image. Requires `endImage` to be set |
-| `riseIn` | — | — | `true`/`false`. Model grows up out of the ground on placement instead of appearing instantly. Overrides `config.riseInOut.riseIn` for this link |
-| `sinkOut` | — | — | `true`/`false`. Model shrinks back into the ground when the sequence ends, instead of just stopping. Overrides `config.riseInOut.sinkOut` for this link. Forces the sequence to play once (no loop), same as setting `endImage`/`ctaUrl` |
+#### Basic
 
-> **End-screen behaviour:** if `endImage`, `ctaUrl`, or `sinkOut` is set, the 4DS plays **once** from start to finish (no looping). When the sequence ends, it sinks into the ground first if `sinkOut` is enabled, then — if `endImage` or `ctaUrl` is set — a full-screen overlay appears showing the image. If `ctaUrl` is also set, tapping the image opens that URL in a new tab and a "タップして開く" hint is shown below the image. Without `ctaUrl` the image is display-only.
->
-> **Rise/sink behaviour:** `riseIn` and `sinkOut` are independent — enable either or both. Both default to `false` (`config.riseInOut`), so a bare link with neither param behaves exactly like standard WebAR: the model just appears and disappears normally. The grow/shrink animation is a scale + local-height tween (no ground clipping), tuned via `config.riseInOut.duration` and `config.riseInOut.sinkDepth`.
+| Parameter | Required | Default | Description |
+|-----------|:---:|---------|--------------|
+| `vvdata` | ✓ | — | URL of the `.4ds` volumetric sequence to play |
+| `gaid` | — | — | Google Analytics ID used for client-side tracking |
+| `cr-gaid` | — | — | Crescent-side Google Analytics ID (internal usage tracking) |
+
+#### Record
+
+| Parameter | Default | Description |
+|-----------|---------|--------------|
+| `enable-record` | `false` | `true`: show the video-capture button while the 4DS plays. The user can record the camera feed + model; when the sequence ends, any in-progress recording is force-stopped and the button hides |
+| `max-record-ms` | `60000` | Overrides the recording length in milliseconds (applied onto `<xrextras-capture-config max-duration-ms>` in `src/index.html`) |
+
+Recordings are produced by 8th Wall's xrextras capture pipeline (`<xrextras-capture-button>` / `<xrextras-capture-preview>` in `src/index.html`). The capture button's visibility/z-index and record lifecycle handling live in `src/lib/capture.js`. The 4DS audio graph is routed into the recording via `XR8.MediaRecorder.configure()` (see `src/lib/player4ds.js`).
+
+#### RiseIn
+
+| Parameter | Default | Description |
+|-----------|---------|--------------|
+| `enable-risein` | `false` | `true`: model rises up out of the ground on placement. `false`: model appears instantly at the tapped position |
+| `risein-interval-ms` | `1000` | How long the RiseIn animation takes, in milliseconds |
+| `risein-height-m` | `-2.0` | The object's height (relative, metres) before RiseIn starts |
+| `play-after-risein` | `true` | `true`: playback starts only after RiseIn finishes. `false`: the 4DS plays while it rises |
+
+#### SinkOut
+
+| Parameter | Default | Description |
+|-----------|---------|--------------|
+| `enable-sinkout` | `false` | `true`: model sinks back into the ground once playback ends. `false`: model is hidden immediately when playback ends |
+| `sinkout-interval-ms` | `1000` | How long the SinkOut animation takes, in milliseconds |
+| `sinkout-height-m` | `-2.0` | The object's height (relative, metres) once fully sunk |
+
+#### Link
+
+| Parameter | Default | Description |
+|-----------|---------|--------------|
+| `enable-link` | *(auto)* | `true`: show the end-screen image/link after playback. `false`: show nothing. If omitted, defaults to `true` whenever `link-image` or `link-url` is set |
+| `link-url` | — | URL opened in a new tab when the user taps the end-screen image |
+| `link-image` | — | Image shown on the full-screen overlay after the sequence ends |
+
+> Setting `link-image`, `link-url`, or `enable-sinkout` forces the 4DS to play **once** (no loop).
+
+#### Object
+
+| Parameter | Default | Description |
+|-----------|---------|--------------|
+| `enable-always-tap-place` | `true` | `true`: tapping the ground always moves the placed object. `false`: ground-tap placement only works for the first tap |
+| `enable-pinch-scale` | `true` | Enables/disables two-finger pinch-to-resize |
+| `enable-swipe-rotation` | `true` | Enables/disables two-finger twist-to-rotate |
+| `default-scale` | `1.0` | Overall size multiplier applied to the placed object |
 
 ---
 
 ## Configuration (`src/lib/config.js`)
 
-All visual and placement defaults live here. Edit this file to tune the experience without touching component code.
+All visual and placement defaults live here — grouped to match the URL parameter categories above. Edit this file to tune the experience without touching component code.
 
 ```js
 // src/lib/config.js (key sections)
 
-config.hidewall.enabled          // true = show depth-mask wall behind model
+config.hidewall.enabled              // true = show depth-mask wall behind model
 
-config.model4D.offset.front      // metres toward camera at placement
-config.model4D.offset.height     // metres up/down at placement
-config.model4D.offset.side       // metres left/right at placement
-config.model4D.offset.rotationY  // Y-axis trim in degrees
-config.model4D.offset.baseScale  // multiplied with tapDetectionScale
-
-config.model4D.tapDetectionScale // overall size of the model (increase = bigger)
-config.model4D.tapScaleMin       // minimum scale when pinching
-config.model4D.tapScaleMax       // maximum scale when pinching
+config.model4D.offset.front          // metres toward camera at placement
+config.model4D.offset.height         // metres up/down at placement
+config.model4D.offset.side           // metres left/right at placement
+config.model4D.offset.rotationY      // Y-axis trim in degrees
+config.model4D.offset.baseScale      // multiplied with config.object.defaultScale
+config.model4D.tapScaleMin           // minimum scale when pinching
+config.model4D.tapScaleMax           // maximum scale when pinching
 
 config.lighting.directional.shadowMapSize   // 512 / 1024 / 2048
 config.model4D.spotlight.enabled            // toggle shadow spotlight
 
-config.riseInOut.riseIn     // default for the grow-out-of-ground effect (URL riseIn= overrides per link)
-config.riseInOut.sinkOut    // default for the shrink-into-ground effect (URL sinkOut= overrides per link)
-config.riseInOut.duration   // seconds, applies to both rise and sink
-config.riseInOut.sinkDepth  // local metres the model drops while sinking (in addition to scaling to 0)
+// RiseIn / SinkOut — defaults for the matching URL params
+config.riseInOut.riseIn               // enable-risein default
+config.riseInOut.sinkOut              // enable-sinkout default
+config.riseInOut.riseInIntervalMs     // risein-interval-ms default
+config.riseInOut.riseInHeightM        // risein-height-m default
+config.riseInOut.playAfterRiseIn      // play-after-risein default
+config.riseInOut.sinkOutIntervalMs    // sinkout-interval-ms default
+config.riseInOut.sinkOutHeightM       // sinkout-height-m default
+
+// Object — defaults for the matching URL params
+config.object.enableAlwaysTapPlace    // enable-always-tap-place default
+config.object.enablePinchScale        // enable-pinch-scale default
+config.object.enableSwipeRotation     // enable-swipe-rotation default
+config.object.defaultScale            // default-scale default
 ```
 
 ---
@@ -164,49 +191,9 @@ config.riseInOut.sinkDepth  // local metres the model drops while sinking (in ad
 | **No valid link** | Error overlay: "Experience Not Available" + developer hint |
 | **Waiting to tap** | AR camera view + animated tap indicator + "タップして配置 / カメラを地面に向けて、タップしてください" |
 | **Loading** | Frosted-glass spinner overlay: "Loading experience…" |
-| **Placed & playing** | Full AR view + "ドラッグして移動 · ピンチしてサイズ変更" pill (model grows up from the ground first if `riseIn` is set) |
-| **Sequence ends** | Model shrinks back into the ground if `sinkOut` is set, otherwise just stops |
-| **End screen** | Full-screen image overlay (play-once mode only). Tappable if `ctaUrl` is set |
+| **Placed & playing** | Full AR view + "ドラッグして移動 · ピンチしてサイズ変更" pill (model grows up from the ground first if `enable-risein` is set) |
+| **Re-placing** | If `enable-always-tap-place` is on (default), tapping the ground again moves the object to the new spot |
+| **Sequence ends** | Model shrinks back into the ground if `enable-sinkout` is set, otherwise just stops |
+| **End screen** | Full-screen image overlay (play-once mode only). Tappable if `link-url` is set |
 
 ---
-
-## Project Structure
-
-```
-src/
-├── app.js                   # Entry point — param resolution, error guard, component registration
-├── index.html               # A-Frame scene + UI overlays (error, loading, end-screen, HUD)
-├── index.css                # All UI styles (overlays, HUD, animations)
-├── tap-place.js             # Ground-tap placement + drag/pinch gestures + end-screen trigger
-└── lib/
-    ├── config.js            # All tunable defaults
-    ├── player4ds.js         # A-Frame component wrapping WEB4DS
-    ├── enhanced_model4d.js  # Three.js mesh + texture + lighting helpers for 4DS
-    ├── web4dvImporter.js    # WEB4DS decoder entry point
-    ├── web4dvResource.js    # Web Worker codec loader (uses PUBLIC_PATH)
-    ├── scene-lighting.js    # Ambient + directional light setup from config
-    ├── hider-material.js    # Depth-mask material component
-    ├── url-params.js        # URL / remote-JSON param resolver
-    └── deviceUtils.js       # Device/WebGL detection helpers
-
-config/
-└── webpack.config.js        # Build config (Babel, CopyPlugin, DefinePlugin for PUBLIC_PATH)
-
-external/                    # 8th Wall SDK files (not committed — copy from your project)
-├── scripts/8frame-1.5.0.min.js
-├── xrextras/xrextras.js
-├── landing-page/landing-page.js
-└── xr/xr.js
-```
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| AR tracking | 8th Wall SLAM (world tracking) |
-| 3D scene | A-Frame 1.5 + Three.js |
-| Volumetric video | WEB4DS (4D Views Solutions) |
-| Build | Webpack 5 + Babel |
-| Fonts | Outfit, Noto Sans JP (Google Fonts) |

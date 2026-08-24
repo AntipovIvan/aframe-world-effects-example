@@ -372,3 +372,18 @@ body {
   flex-shrink: 0;
   opacity: 0.6;
 }
+
+#captureButtonWrap {
+  position: fixed;
+  left: 50%;
+  bottom: max(6vh, calc(env(safe-area-inset-bottom, 0px) + 24px));
+  transform: translateX(-50%);
+  z-index: 10500000 !important;
+  pointer-events: auto;
+}
+
+#captureButtonWrap[hidden] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

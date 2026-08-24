@@ -13,7 +13,7 @@ export const config = {
       intensity: 0.8,
       position: { x: 0, y: 4, z: 0 },
       castShadow: true,
-      shadowMapSize: 512, // 512 / 1024 / 2048 — higher = sharper but slower
+      shadowMapSize: 1024, // 512 / 1024 / 2048 — higher = sharper but slower
       shadowCameraExtent: 5,
       shadowBias: -0.0001,
       shadowRadius: 3, // blur softness
@@ -49,31 +49,40 @@ export const config = {
       height: -0.58, // metres up/down        (neg = lower)
       side: -0.05, // metres left/right     (neg = left)
       rotationY: 3, // degrees Y-axis trim
-      baseScale: 1, // multiplied with detectionScale to get final scale
+      baseScale: 1, // multiplied with config.object.defaultScale to get final scale
     },
 
-    tapDetectionScale: 1.0,
-
-    // Pinch-to-resize limits (in final scene units).
+    // Pinch-to-resize limits (in final scene units). Not spec params —
+    // internal safety clamp applied regardless of enable-pinch-scale.
     tapScaleMin: 0.05,
     tapScaleMax: 10.0,
   },
 
+  // ── RiseIn / SinkOut ──────────────────────────────────────────────────────
   riseInOut: {
-    riseIn: false, // model slides up out of the ground on placement
-    sinkOut: false, // model slides back down into the ground when playback ends
-    duration: 2.0, // seconds, applies to both rise and sink (per user request: ~2s)
-    // How far below the clip plane (ground level) the model sits when fully
-    // sunk, as a multiple of the model's own local-space height. 1.0 means
-    // "drop it exactly its own height" — guaranteed to clear the ground
-    // clip plane regardless of the model's real-world scale, since it's
-    // measured in the model's own local units (pre-scale), same as the
-    // bounding box used to compute it.
-    sinkDepthMultiplier: 1.15,
+    riseIn: false, // enable-risein default
+    sinkOut: false, // enable-sinkout default
 
-    // Fallback local-space height (metres) used only if the model's bounding
-    // box can't be measured yet when the first RiseIn/SinkOut kicks off.
-    sinkDepthFallback: 2.0,
+    riseInIntervalMs: 1000, // risein-interval-ms default — time the RiseIn animation takes
+    riseInHeightM: -2.0, // risein-height-m default — object's height before RiseIn starts
+    playAfterRiseIn: true, // play-after-risein default — play only after RiseIn completes
+
+    sinkOutIntervalMs: 1000, // sinkout-interval-ms default — time the SinkOut animation takes
+    sinkOutHeightM: -2.0, // sinkout-height-m default — object's height once fully sunk
+  },
+
+  // ── Object (tap-place / gesture) ─────────────────────────────────────────
+  object: {
+    enableAlwaysTapPlace: true, // enable-always-tap-place default
+    enablePinchScale: true, // enable-pinch-scale default
+    enableSwipeRotation: true, // enable-swipe-rotation default
+    defaultScale: 1.0, // default-scale default
+  },
+
+  // ── Record ────────────────────────────────────────────────────────────────
+  record: {
+    enableRecord: true, // enable-record default — show the capture button
+    maxDurationMs: 60000, // fallback; index.html's max-duration-ms must match
   },
 };
 

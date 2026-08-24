@@ -1,6 +1,38 @@
-import { config } from "./config.js";
-
 export const urlParams = {};
+
+// ─── Parameter key map ────────────────────────────────────────────────────────
+const KEYS = {
+  // Basic
+  vvdata: ["vvdata"],
+  gaid: ["gaid"],
+  crGaid: ["cr-gaid"],
+
+  // RiseIn
+  enableRiseIn: ["enable-risein"],
+  riseInIntervalMs: ["risein-interval-ms"],
+  riseInHeightM: ["risein-height-m"],
+  playAfterRiseIn: ["play-after-risein"],
+
+  // SinkOut
+  enableSinkOut: ["enable-sinkout"],
+  sinkOutIntervalMs: ["sinkout-interval-ms"],
+  sinkOutHeightM: ["sinkout-height-m"],
+
+  // Link
+  enableLink: ["enable-link"],
+  linkUrl: ["link-url"],
+  linkImage: ["link-image"],
+
+  // Object
+  enableAlwaysTapPlace: ["enable-always-tap-place"],
+  enablePinchScale: ["enable-pinch-scale"],
+  enableSwipeRotation: ["enable-swipe-rotation"],
+  defaultScale: ["default-scale"],
+
+  // Record
+  enableRecord: ["enable-record"],
+  maxRecordMs: ["max-record-ms"],
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -96,25 +128,40 @@ export async function initUrlParams() {
   }
 
   Object.assign(urlParams, {
-    // Core content
-    vvdata: resolveString(["vvData", "vvdata"], json, search),
+    // ── Basic ──────────────────────────────────────────────────────────────
+    vvdata: resolveString(KEYS.vvdata, json, search),
+    gaid: resolveString(KEYS.gaid, json, search),
+    crGaid: resolveString(KEYS.crGaid, json, search),
 
-    endImage: resolveString(["endImage", "image"], json, search),
-    ctaUrl: resolveString(["ctaUrl", "url"], json, search),
-
+    // ── RiseIn ─────────────────────────────────────────────────────────────
     // null = not specified by this link; caller falls back to config default.
-    riseIn: resolveBool(["riseIn"], json, search),
-    sinkOut: resolveBool(["sinkOut"], json, search),
+    enableRiseIn: resolveBool(KEYS.enableRiseIn, json, search),
+    riseInIntervalMs: resolveFloat(KEYS.riseInIntervalMs, json, search),
+    riseInHeightM: resolveFloat(KEYS.riseInHeightM, json, search),
+    playAfterRiseIn: resolveBool(KEYS.playAfterRiseIn, json, search),
+
+    // ── SinkOut ────────────────────────────────────────────────────────────
+    enableSinkOut: resolveBool(KEYS.enableSinkOut, json, search),
+    sinkOutIntervalMs: resolveFloat(KEYS.sinkOutIntervalMs, json, search),
+    sinkOutHeightM: resolveFloat(KEYS.sinkOutHeightM, json, search),
+
+    // ── Link ───────────────────────────────────────────────────────────────
+    enableLink: resolveBool(KEYS.enableLink, json, search),
+    linkUrl: resolveString(KEYS.linkUrl, json, search),
+    linkImage: resolveString(KEYS.linkImage, json, search),
+
+    // ── Object ─────────────────────────────────────────────────────────────
+    enableAlwaysTapPlace: resolveBool(KEYS.enableAlwaysTapPlace, json, search),
+    enablePinchScale: resolveBool(KEYS.enablePinchScale, json, search),
+    enableSwipeRotation: resolveBool(KEYS.enableSwipeRotation, json, search),
+    defaultScale: resolveFloat(KEYS.defaultScale, json, search),
+
+    // ── Record ─────────────────────────────────────────────────────────────
+    enableRecord: resolveBool(KEYS.enableRecord, json, search),
+    maxRecordMs: resolveFloat(KEYS.maxRecordMs, json, search),
 
     _usedParamsUrl: !!paramsUrl,
     _paramsUrl: paramsUrl ?? null,
-  });
-  console.log("[url-params] Resolved:", {
-    vvdata: urlParams.vvdata,
-    endImage: urlParams.endImage,
-    ctaUrl: urlParams.ctaUrl,
-    riseIn: urlParams.riseIn,
-    sinkOut: urlParams.sinkOut,
   });
 
   return urlParams;
