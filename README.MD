@@ -112,7 +112,7 @@ https://yourdomain.com/index.html?vvdata=https://cdn.example.com/sequence.4ds&en
 | `enable-record` | `false` | `true`: show the video-capture button while the 4DS plays. The user can record the camera feed + model; when the sequence ends, any in-progress recording is force-stopped and the button hides |
 | `max-record-ms` | `60000` | Overrides the recording length in milliseconds (applied onto `<xrextras-capture-config max-duration-ms>` in `src/index.html`) |
 
-Recordings are produced by 8th Wall's xrextras capture pipeline (`<xrextras-capture-button>` / `<xrextras-capture-preview>` in `src/index.html`). The capture button's visibility/z-index and record lifecycle handling live in `src/lib/capture.js`. The 4DS audio graph is routed into the recording via `XR8.MediaRecorder.configure()` (see `src/lib/player4ds.js`).
+Recordings are produced by 8th Wall's xrextras capture pipeline (`<xrextras-capture-button>` / `<xrextras-capture-preview>` in `src/index.html`). The capture button's visibility/z-index and record lifecycle handling live in `src/lib/capture.js`. The 4DS audio graph is routed into the recording via `XR8.MediaRecorder.configure()` (see `src/lib/player4ds.js`). With `replay-after-sinkout=true`, the capture button reappears automatically each time a replay cycle starts.
 
 > **Loop-mode note:** the auto stop-and-hide is driven by `player4ds-ended`, which only fires in play-once mode. If the sequence loops (no `link-image`/`link-url`/`enable-sinkout`), the capture button stays visible until the page is closed — the user simply stops their own recordings manually.
 

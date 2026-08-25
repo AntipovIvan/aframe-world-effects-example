@@ -40,16 +40,11 @@ const player4dsComponent = () => ({
       default: config.riseInOut.sinkOutHeightM,
     },
 
-    // play-after-risein — whether playback starts only after RiseIn
-    // completes (also honoured by the replay-after-sinkout cycle).
     playAfterRiseIn: {
       type: "bool",
       default: config.riseInOut.playAfterRiseIn,
     },
 
-    // replay-after-sinkout / replay-delay-ms — when enabled, each finished
-    // playthrough automatically rises back up and plays again after the
-    // configured delay, forming a rise → play → sink → … cycle.
     replayAfterSinkOut: { type: "bool", default: false },
     replayDelayMs: { type: "number", default: 1000 },
   },
@@ -234,6 +229,7 @@ const player4dsComponent = () => ({
 
     if (this.isReadyForPlayback) {
       this.web4ds.play(false);
+      this.el.emit("player4ds-playback-started");
     }
   },
 
@@ -328,10 +324,6 @@ const player4dsComponent = () => ({
   },
 
   // ─── Replay (replay-after-sinkout) ───────────────────────────────────────────
-  // After a playthrough ends (and any SinkOut has settled), waits
-  // replay-delay-ms, then rises back up and plays again — forming a full
-  // rise → play → sink → … cycle. No-op unless replayAfterSinkOut is set.
-
   scheduleReplay() {
     if (!this.data.replayAfterSinkOut) return;
     this.cancelReplay();
@@ -339,6 +331,10 @@ const player4dsComponent = () => ({
     this._replayTimeoutId = setTimeout(() => {
       this._replayTimeoutId = null;
       if (!this.web4ds || !this.isReadyForPlayback) return;
+
+      this.web4ds.currentFrame = 0;
+      this.web4ds.frameOffset = 0;
+
       if (this.data.playAfterRiseIn) {
         this.playRiseIn(() => this.startPlayback());
       } else {

@@ -64,6 +64,14 @@ export const tapPlaceComponent = {
       config.object.enableAlwaysTapPlace,
     );
     this._enableRecord = isRecordEnabled();
+
+    const recordPlayerEl = document.getElementById("player4ds-panel");
+    recordPlayerEl?.addEventListener("player4ds-playback-started", () => {
+      if (this._enableRecord) showCaptureButtonUI();
+    });
+    recordPlayerEl?.addEventListener("player4ds-ended", () =>
+      stopRecordingAndHideCaptureButton(),
+    );
     this._enablePinchScale = resolveToggle(
       urlParams.enablePinchScale,
       config.object.enablePinchScale,
@@ -294,16 +302,6 @@ export const tapPlaceComponent = {
     this._riseInEnabled = riseInEnabled;
 
     // ── Repeat / Replay rules ─────────────────────────────────────────────────
-    // Precedence:
-    //   1. link-image AND link-url both present → play exactly once (the
-    //      end-screen overlay needs the sequence to finish). Never repeats.
-    //   2. Otherwise enable-repeat=true → loop, even if sink-out is
-    //      configured (a looping sequence never ends, so it never sinks).
-    //   3. Otherwise legacy behaviour: enable-sinkout forces one-shot
-    //      playback; with nothing set the sequence loops.
-    // replay-after-sinkout (suppressed when rule 1 applies) additionally
-    // makes each finished playthrough rise up and play again after a pause —
-    // handled inside player4ds-component via scheduleReplay().
     const hasEndScreenLink = !!(urlParams.linkImage && urlParams.linkUrl);
     const repeatEnabled = resolveToggle(
       urlParams.enableRepeat,
@@ -392,12 +390,6 @@ export const tapPlaceComponent = {
         } else {
           startPlayback();
         }
-        if (this._enableRecord) showCaptureButtonUI();
-        player.addEventListener(
-          "player4ds-ended",
-          () => stopRecordingAndHideCaptureButton(),
-          { once: true },
-        );
 
         this._positionHiderWall(
           this._placedTouchPoint,
